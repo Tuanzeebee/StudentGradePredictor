@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Landing from "./pages/Landing";
+import ScoreChartPage from "./pages/ScoreChartPage";
 
 function HomePage() {
   const navigate = useNavigate();
@@ -50,6 +51,7 @@ function App() {
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/register" element={<Register />} />
         <Route path="/landing" element={<Landing />} />
+        <Route path="/score-chart" element={<ScoreChartPage />} />
         <Route path="/" element={<HomePage />} />
       </Routes>
     </BrowserRouter>

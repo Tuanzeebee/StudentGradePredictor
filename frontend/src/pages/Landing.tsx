@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import UploadFile from "../components/UploadFile";
 
 function Landing() {
   const navigate = useNavigate();
@@ -38,6 +39,8 @@ function Landing() {
         <p style={{ marginBottom: '30px' }}>
           Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi.
         </p>
+        
+        <UploadFile />
         
         <button 
           onClick={() => navigate('/')}
