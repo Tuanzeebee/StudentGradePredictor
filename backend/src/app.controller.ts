@@ -64,9 +64,12 @@ export class AppController {
 
   @Post('user')
   async signupUser(
-    @Body() userData: { name?: string; email: string },
+    @Body() userData: { name: string; email: string; password: string },
   ): Promise<UserModel> {
-    return this.userService.createUser(userData);
+    const { name, email, password } = userData;
+    
+    // Nếu bạn hash password tại service, không cần làm gì ở đây
+    return this.userService.createUser({ name, email, password });
   }
 
   @Put('publish/:id')
