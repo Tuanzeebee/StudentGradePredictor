@@ -1,28 +1,58 @@
-import { useEffect, useState } from "react";
-import api from "./api";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Landing from "./pages/Landing";
 
-function App() {
-  const [posts, setPosts] = useState([]);
-
-  useEffect(() => {
-    api.get("/post").then((res) => {
-      setPosts(res.data);
-    });
-    api.post("/post", {
-      title: "Hello",
-      content: "From frontend",
-    });
-  }, []);
+function HomePage() {
+  const navigate = useNavigate();
 
   return (
-    <div>
-      <h1>Post list</h1>
-      <ul>
-        {posts.map((post: any) => (
-          <li key={post.id}>{post.title}</li>
-        ))}
-      </ul>
+    <div style={{ textAlign: 'center', padding: '50px' }}>
+      <h1>Welcome to Our App</h1>
+      <div style={{ marginTop: '30px' }}>
+        <button 
+          onClick={() => navigate('/auth/login')}
+          style={{ 
+            margin: '10px', 
+            padding: '10px 20px', 
+            fontSize: '16px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}>
+          Login
+        </button>
+        <button 
+          onClick={() => navigate('/auth/register')}
+          style={{ 
+            margin: '10px', 
+            padding: '10px 20px', 
+            fontSize: '16px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}>
+          Register
+        </button>
+      </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/auth/login" element={<Login />} />
+        <Route path="/auth/register" element={<Register />} />
+        <Route path="/landing" element={<Landing />} />
+        <Route path="/" element={<HomePage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
