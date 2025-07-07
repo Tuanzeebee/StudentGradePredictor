@@ -27,37 +27,45 @@ model Post {
 }
 
 model ScoreRecord {
-  id                   Int              @id @default(autoincrement())
-  userId               Int
-  semesterNumber       Int
-  year                 String
-  courseCode           String
-  studyFormat          String
-  creditsUnit          Int
-  rawScore             Float
-  currentSemesterGpa   Float?
-  cumulativeGpa        Float?
-  previousCoursesTaken Int
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-  predictedScores      PredictedScore[]
-  user                 User             @relation(fields: [userId], references: [id])
+  id                     Int              @id @default(autoincrement())
+  userId                 Int
+  semesterNumber         Int
+  year                   String
+  courseCode             String
+  studyFormat            String
+  creditsUnit            Int
+  rawScore               Float
+  currentSemesterGpa     Float?
+  cumulativeGpa          Float?
+  previousCoursesTaken   Int
+  previousCreditsEarned  Int
+  weeklyStudyHours       Float?
+  attendancePercentage   Float?
+  commuteTimeMinutes     Float?
+  familySupport          Float?
+  studyHoursXAttendance  Float?
+  attendanceXSupport     Float?
+  fullInteractionFeature Float?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  predictedScores        PredictedScore[]
+  user                   User             @relation(fields: [userId], references: [id])
 }
 
 model PredictedScore {
-  id                    Int          @id @default(autoincrement())
-  semesterNumber        Int
-  year                  String
-  courseCode            String
-  expectedScore         Float?
-  failRateGeneral       Float?
-  failRateMajor         Float?
-  studyHoursXAttendance Float?
-  attendanceXSupport    Float?
-  interactionScore      Float?
-  predictedScore        Float?
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
-  scoreRecordId         Int?
-  scoreRecord           ScoreRecord? @relation(fields: [scoreRecordId], references: [id])
+  id                     Int          @id @default(autoincrement())
+  semesterNumber         Int
+  year                   String
+  courseCode             String
+  expectedScoreHint      Float?
+  failRateGeneral        Float?
+  failRateMajor          Float?
+  studyHoursXAttendance  Float?
+  attendanceXSupport     Float?
+  fullInteractionFeature Float?
+  predictedScore         Float?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  scoreRecordId          Int?
+  scoreRecord            ScoreRecord? @relation(fields: [scoreRecordId], references: [id])
 }

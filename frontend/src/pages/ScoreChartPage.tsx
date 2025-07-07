@@ -14,6 +14,26 @@ const ScoreChartPage: React.FC = () => {
   const [scoreData, setScoreData] = useState<ScoreData[]>([]);
   const [totalGPA, setTotalGPA] = useState<number>(0);
   const [totalCourses, setTotalCourses] = useState<number>(0);
+  const [inferredResults, setInferredResults] = useState<{[key: number]: {attendancePercentage: number, weeklyStudyHours: number}}>({});
+
+  const handleSupportChange = (index: number, value: number) => {
+    // Handle family support change
+    console.log(`Support changed for index ${index}: ${value}`);
+  };
+
+  const handleCommuteChange = (index: number, value: number) => {
+    // Handle commute time change
+    console.log(`Commute time changed for index ${index}: ${value}`);
+  };
+
+  const handleInfer = (index: number) => {
+    // Simulate inference result
+    const result = {
+      attendancePercentage: Math.floor(Math.random() * 30) + 70, // 70-100%
+      weeklyStudyHours: Math.floor(Math.random() * 10) + 10 // 10-20 hours
+    };
+    setInferredResults(prev => ({...prev, [index]: result}));
+  };
 
   useEffect(() => {
     // Fetch data for GPA calculation
@@ -141,6 +161,44 @@ const ScoreChartPage: React.FC = () => {
         marginBottom: '20px'
       }}>
         <ScoreChart />
+        {scoreData
+  .filter((item) => item.actual && item.actual > 0)
+  .map((item, index) => (
+    <div key={index} style={{ marginBottom: '20px', padding: '15px', background: '#fff', borderRadius: '8px' }}>
+      <h4 style={{ marginBottom: '10px' }}>Môn: {item.courseCode} – {item.semester}</h4>
+      <label>
+        Hỗ trợ gia đình:
+        <select defaultValue={1} onChange={(e) => handleSupportChange(index, parseInt(e.target.value))}>
+          <option value={0}>Thấp</option>
+          <option value={1}>Trung bình</option>
+          <option value={2}>Cao</option>
+          <option value={3}>Rất cao</option>
+        </select>
+      </label>
+      <label style={{ marginLeft: '20px' }}>
+        Thời gian đi học (phút):
+        <input 
+          type="number" 
+          min={5} 
+          max={60} 
+          defaultValue={25} 
+          style={{ width: '60px', marginLeft: '5px' }}
+          onChange={(e) => handleCommuteChange(index, parseInt(e.target.value))} 
+        />
+      </label>
+      <button onClick={() => handleInfer(index)} style={{ marginLeft: '20px' }}>
+        Tính thời gian học & điểm danh
+      </button>
+
+      {/* Kết quả dự đoán hiển thị ở đây */}
+      {inferredResults[index] && (
+        <div style={{ marginTop: '10px', color: '#007bff' }}>
+          👉 attendance: {inferredResults[index].attendancePercentage}% – weeklyStudyHours: {inferredResults[index].weeklyStudyHours}
+        </div>
+      )}
+    </div>
+))}
+
       </div>
 
       <div style={{ textAlign: 'center' }}>

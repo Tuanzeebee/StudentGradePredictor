@@ -11,7 +11,7 @@ describe('ScoreService', () => {
 
     service = module.get<ScoreService>(ScoreService);
   });
-
+  
   it('should be defined', () => {
     expect(service).toBeDefined();
   });

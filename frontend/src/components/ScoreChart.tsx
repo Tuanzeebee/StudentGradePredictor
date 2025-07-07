@@ -19,16 +19,77 @@ type DataPoint = {
 
 const ScoreChart: React.FC = () => {
   const [data, setData] = useState<DataPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('http://localhost:3000/scores/chart-data')
-      .then((res) => res.json())
-      .then(setData);
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch data');
+        }
+        return res.json();
+      })
+      .then(setData)
+      .catch((err) => {
+        console.error('Error fetching data:', err);
+        setError(err.message);
+      })
+      .finally(() => setLoading(false));
   }, []);
+
+  if (loading) {
+    return (
+      <div style={{ 
+        width: '100%', 
+        height: 400, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px'
+      }}>
+        <p>Đang tải dữ liệu...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        width: '100%', 
+        height: 400, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#fff3e0',
+        borderRadius: '8px',
+        border: '1px solid #ff9800'
+      }}>
+        <p style={{ color: '#e65100' }}>Lỗi: {error}</p>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div style={{ 
+        width: '100%', 
+        height: 400, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px'
+      }}>
+        <p>Không có dữ liệu để hiển thị</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ width: '100%', height: 400 }}>
-      <ResponsiveContainer>
+      <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="courseCode" />
