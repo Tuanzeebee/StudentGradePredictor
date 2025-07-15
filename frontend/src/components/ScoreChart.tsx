@@ -23,11 +23,12 @@ const ScoreChart: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('http://localhost:3000/scores/chart-data')
+    const token = localStorage.getItem('token');
+    fetch('http://localhost:3000/scores/chart-data', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then((res) => {
-        if (!res.ok) {
-          throw new Error('Failed to fetch data');
-        }
+        if (!res.ok) throw new Error('Failed to fetch chart data');
         return res.json();
       })
       .then(setData)
@@ -38,51 +39,23 @@ const ScoreChart: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
+  if (loading || error || data.length === 0) {
     return (
-      <div style={{ 
-        width: '100%', 
-        height: 400, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px'
-      }}>
-        <p>Đang tải dữ liệu...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ 
-        width: '100%', 
-        height: 400, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#fff3e0',
-        borderRadius: '8px',
-        border: '1px solid #ff9800'
-      }}>
-        <p style={{ color: '#e65100' }}>Lỗi: {error}</p>
-      </div>
-    );
-  }
-
-  if (data.length === 0) {
-    return (
-      <div style={{ 
-        width: '100%', 
-        height: 400, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px'
-      }}>
-        <p>Không có dữ liệu để hiển thị</p>
+      <div
+        style={{
+          width: '100%',
+          height: 400,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: error ? '#fff3e0' : '#f8f9fa',
+          borderRadius: '8px',
+          border: error ? '1px solid #ff9800' : undefined,
+        }}
+      >
+        <p style={{ color: error ? '#e65100' : '#333' }}>
+          {error ? `Lỗi: ${error}` : loading ? 'Đang tải dữ liệu...' : 'Không có dữ liệu để hiển thị'}
+        </p>
       </div>
     );
   }
@@ -94,20 +67,27 @@ const ScoreChart: React.FC = () => {
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="courseCode" />
           <YAxis domain={[0, 10]} />
-          <Tooltip />
+          <Tooltip formatter={(value: number, name: string) => [value.toFixed(2), name]} />
           <Legend />
           <Line
             type="monotone"
             dataKey="actual"
-            stroke="#8884d8"
-            name="Thực tế"
+            stroke="#1976d2"
+            strokeWidth={2.5}
+            name="Điểm thực tế"
+            dot={{ r: 5 }}
+            activeDot={{ r: 7 }}
             connectNulls
           />
           <Line
             type="monotone"
             dataKey="predicted"
-            stroke="#82ca9d"
-            name="Dự đoán"
+            stroke="#43a047"
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            name="Điểm dự đoán"
+            dot={{ r: 4 }}
+            activeDot={{ r: 6 }}
             connectNulls
           />
         </LineChart>

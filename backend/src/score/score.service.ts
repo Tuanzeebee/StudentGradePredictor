@@ -3,138 +3,204 @@ import { PrismaService } from 'src/prisma.service';
 import * as fs from 'fs';
 import * as csv from 'csv-parser';
 import axios from 'axios';
+import { SaveScoreDto } from './dto/save-score.dto';
+
+const SUBJECT_TYPE_MAP: Record<string, 'major' | 'general'> = {
+  /* … giữ nguyên … */
+};
 
 @Injectable()
 export class ScoreService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async importFromCsv(filePath: string) {
+  // ────────────────────────────────────────────────────────────────────────────
+  // IMPORT CSV
+  // ────────────────────────────────────────────────────────────────────────────
+  async importFromCsv(filePath: string, userId: number) {
     const rows = await this.readCsv(filePath);
-    
-    let user = await this.prisma.user.findUnique({ where: { id: 1 } });
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          email: 'sample@example.com',
-          name: 'Sample User',
-          password: 'hashedpassword'
-        }
-      });
-    }
-    const userId = user.id;
 
-    // Xóa dữ liệu cũ
-    await this.prisma.predictedScore.deleteMany({
-      where: { scoreRecord: { userId } }
-    });
-    await this.prisma.scoreRecord.deleteMany({
-      where: { userId }
-    });
+    /* 1) xoá dữ liệu cũ */
+    await this.prisma.predictedScore.deleteMany({ where: { scoreRecord: { userId } } });
+    await this.prisma.scoreRecord.deleteMany({ where: { userId } });
 
-    console.log(`🗑️ Deleted old records for user ${userId}`);
+    const records: any[] = [];
 
+    // ───── STEP 1: PARSE & GỌI /REVERSE NẾU CẦN ─────
     for (const row of rows) {
-      const semesterNumber = parseInt(row.semester_number) || 1;
-      const year = row.year || '2023-2024';
-      const courseCode = row.course_code;
-      const studyFormat = row.study_format || 'LEC';
-      const creditsUnit = parseInt(row.credits_unit) || 3;
-      const rawScore = parseFloat(row.raw_score) || 0;
-      const currentGpa = row.current_semester_gpa ? parseFloat(row.current_semester_gpa) : null;
-      const cumulativeGpa = row.cumulative_gpa ? parseFloat(row.cumulative_gpa) : null;
-      const previousCoursesTaken = parseInt(row.previous_courses_taken || '0');
-      const previousCreditsEarned = parseInt(row.previous_credits_earned || '0');
+      const semesterNumber       = +row.semester_number || 1;
+      const year                 = row.year || '2023-2024';
+      const courseCode           = row.course_code;
+      const studyFormat          = row.study_format || 'LEC';
+      const creditsUnit          = +row.credits_unit || 3;
 
-      const weeklyStudyHours = parseFloat(row.weekly_study_hours || '0');
-      const attendancePercentage = parseFloat(row.attendance_percentage || '0');
-      const commuteTimeMinutes = parseFloat(row.commute_time_minutes || '0');
-      const familySupport = parseInt(row.family_support || '0');
+      const rawScore             = +row.raw_score;
+      const partTimeHours        = +row.part_time_hours;
+      const attendancePercentage = +row.attendance_percentage;
+      const familySupport        = +row.family_support;
 
-      // Tính feature phụ
-      const studyHoursXAttendance = weeklyStudyHours * (attendancePercentage / 100);
-      const attendanceXSupport = (attendancePercentage / 100) * familySupport;
-      const fullInteractionFeature = weeklyStudyHours * commuteTimeMinutes * (attendancePercentage / 100) * familySupport;
+      let weeklyStudyHours       = +row.weekly_study_hours;  // có thể NaN
 
-      const expectedScoreHint = (
-        attendancePercentage >= 85 ||
-        (weeklyStudyHours >= 15 && attendancePercentage >= 90) ||
-        (weeklyStudyHours >= 20 && attendancePercentage >= 70) ||
-        (familySupport >= 4 && attendancePercentage >= 95) ||
-        (familySupport >= 3 && attendancePercentage >= 85)
-      ) ? 1 : 0;
+      const canCallReverse =
+        !isNaN(rawScore) &&
+        !isNaN(partTimeHours) &&
+        !isNaN(attendancePercentage) &&
+        !isNaN(familySupport) &&
+        isNaN(weeklyStudyHours);      // thiếu weeklyStudyHours
 
-      const failRateGeneral = Math.max(0, 1 - attendancePercentage / 100);
-      const failRateMajor = Math.max(0, 1 - studyHoursXAttendance / 20);
+      if (canCallReverse) {
+        try {
+          const { data } = await axios.post('http://localhost:8000/reverse', {
+            semester_number: semesterNumber,
+            course_code: courseCode,
+            study_format: studyFormat,
+            credits_unit: creditsUnit,
+            raw_score: rawScore,
+            attendance_percentage: attendancePercentage,
+            part_time_hours: partTimeHours,
+            family_support: familySupport,
+          });
 
-      // Gọi FastAPI để dự đoán
-      let predictedScore: number | null = null;
-      try {
-        const response = await axios.post('http://localhost:8000/predict', {
-          semester_number: semesterNumber,
-          course_code: courseCode,
-          study_format: studyFormat,
-          credits_unit: creditsUnit,
-          weekly_study_hours: weeklyStudyHours,
-          attendance_percentage: attendancePercentage,
-          commute_time_minutes: commuteTimeMinutes,
-          family_support: familySupport,
-          study_hours_x_attendance: studyHoursXAttendance,
-          attendance_x_support: attendanceXSupport,
-          full_interaction_feature: fullInteractionFeature,
-          expected_score_hint: expectedScoreHint,
-          fail_rate_general: failRateGeneral,
-          fail_rate_major: failRateMajor
-        });
-        predictedScore = response.data.predicted_score;
-      } catch (error) {
-        console.error(`❌ Gọi API dự đoán thất bại cho ${courseCode}:`, error.message);
+          weeklyStudyHours = data.predicted_weekly_study_hours;
+        } catch (e) {
+          console.warn(`❌ Reverse failed [${courseCode}]: ${e.message}`);
+        }
       }
 
-      // Lưu vào DB
-      const score = await this.prisma.scoreRecord.create({
+      records.push({
+        userId,
+        semesterNumber,
+        year,
+        courseCode,
+        studyFormat,
+        creditsUnit,
+        rawScore: isNaN(rawScore) ? null : rawScore,
+        weeklyStudyHours: isNaN(weeklyStudyHours) ? null : weeklyStudyHours,
+        attendancePercentage: isNaN(attendancePercentage) ? null : attendancePercentage,
+        partTimeHours: isNaN(partTimeHours) ? null : partTimeHours,
+        familySupport: isNaN(familySupport) ? null : familySupport,
+      });
+    }
+
+    // ───── STEP 2: GÁN subjectType & TRUNG VỊ KHI THIẾU ─────
+    const withType = records.map(r => ({
+      ...r,
+      subjectType: SUBJECT_TYPE_MAP[r.courseCode] || 'general',
+    }));
+
+    const med = (arr: number[], fallback = 12) =>
+      arr.length ? arr.sort((a, b) => a - b)[Math.floor(arr.length / 2)] : fallback;
+
+    const buckets: Record<'major' | 'general', { hours: number[]; att: number[] }> = {
+      major: { hours: [], att: [] }, general: { hours: [], att: [] },
+    };
+
+    for (const r of withType) {
+      if (r.weeklyStudyHours) buckets[r.subjectType].hours.push(r.weeklyStudyHours);
+      if (r.attendancePercentage) buckets[r.subjectType].att.push(r.attendancePercentage);
+    }
+
+    for (const r of withType) {
+      if (r.weeklyStudyHours === null)
+        r.weeklyStudyHours = med(buckets[r.subjectType].hours);
+      if (r.attendancePercentage === null)
+        r.attendancePercentage = med(buckets[r.subjectType].att, 85);
+    }
+
+    // ───── STEP 3: LƯU scoreRecord & (GỌI /PREDICT NẾU ĐỦ) ─────
+    for (const r of withType) {
+      // interaction features đúng theo API mới
+      const sxa  = r.weeklyStudyHours * (r.attendancePercentage / 100);
+      const sxp  = r.weeklyStudyHours * r.partTimeHours;
+      const fxp  = r.familySupport * r.partTimeHours;
+      const axs  = (r.attendancePercentage / 100) * r.familySupport;
+      const full = r.weeklyStudyHours * (r.attendancePercentage / 100) * r.partTimeHours * r.familySupport;
+      
+    //   const existing = await this.prisma.scoreRecord.findFirst({
+    //   where: {
+    //     userId: r.userId,
+    //     courseCode: r.courseCode,
+    //     semesterNumber: r.semesterNumber,
+    //     year: r.year,
+    //   },
+    // });
+
+    // if (existing) {
+    //   console.warn(`⚠️ Đã tồn tại: ${r.courseCode} HK${r.semesterNumber}-${r.year}`);
+    //   continue;
+    // }
+      const record = await this.prisma.scoreRecord.create({
         data: {
-          userId,
-          semesterNumber,
-          year,
-          courseCode,
-          studyFormat,
-          creditsUnit,
-          rawScore,
-          currentSemesterGpa: currentGpa,
-          cumulativeGpa: cumulativeGpa,
-          previousCoursesTaken,
-          previousCreditsEarned,
-          weeklyStudyHours,
-          attendancePercentage,
-          commuteTimeMinutes,
-          familySupport,
-          studyHoursXAttendance,
-          attendanceXSupport,
-          fullInteractionFeature,
-          predictedScores: {
-            create: [
-              {
-                semesterNumber,
-                year,
-                courseCode,
-                studyHoursXAttendance,
-                attendanceXSupport,
-                fullInteractionFeature,
-                expectedScoreHint,
-                failRateGeneral,
-                failRateMajor,
-                predictedScore
-              },
-            ],
-          },
+          user: { connect: { id: r.userId } },
+          semesterNumber: r.semesterNumber,
+          year: r.year,
+          courseCode: r.courseCode,
+          studyFormat: r.studyFormat,
+          creditsUnit: r.creditsUnit,
+          rawScore: r.rawScore,
+          weeklyStudyHours: r.weeklyStudyHours,
+          attendancePercentage: r.attendancePercentage,
+          partTimeHours: r.partTimeHours,
+          familySupport: r.familySupport,
+          // interaction cols
+          studyHoursXAttendance: sxa,
+          studyHoursXPartPartTimeHours: sxp,
+          familySupportXPartTimeHours: fxp,
+          attendanceXSupport: axs,
+          fullInteractionFeature: full,
         },
       });
 
-      console.log(`✔️ Saved record for ${score.courseCode}`);
+      // đủ dữ liệu để gọi /predict?
+      const canPredict = [r.weeklyStudyHours, r.attendancePercentage, r.partTimeHours, r.familySupport]
+        .every(v => v !== null);
+
+      if (canPredict) {
+        try {
+          const { data } = await axios.post('http://localhost:8000/predict', {
+            semester_number: r.semesterNumber,
+            course_code: r.courseCode,
+            study_format: r.studyFormat,
+            credits_unit: r.creditsUnit,
+            weekly_study_hours: r.weeklyStudyHours,
+            attendance_percentage: r.attendancePercentage,
+            part_time_hours: r.partTimeHours,
+            family_support: r.familySupport,
+            study_hours_x_attendance: sxa,
+            study_hours_x_part_part_time_hours: sxp,
+            family_support_x_part_time_hours: fxp,
+            attendance_x_support: axs,
+            full_interaction_feature: full,
+          });
+
+          await this.prisma.predictedScore.create({
+            data: {
+              semesterNumber: r.semesterNumber,
+              year: r.year,
+              courseCode: r.courseCode,
+              predictedScore: data.predicted_score,
+              studyHoursXAttendance: sxa,
+              studyHoursXPartPartTimeHours: sxp,
+              familySupportXPartTimeHours: fxp,
+              attendanceXSupport: axs,
+              fullInteractionFeature: full,
+              mode: 'MAIN',
+              scoreRecord: { connect: { id: record.id } },
+            },
+          });
+        } catch (e) {
+          console.warn(`❌ Predict failed [${r.courseCode}]: ${e.message}`);
+        }
+      }
     }
 
-    fs.unlinkSync(filePath);
-    return { message: `✅ Imported ${rows.length} records successfully` };
+    return { message: `✅ Imported ${rows.length} rows.` };
+  }
+  async doSomething(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) throw new Error('User not found');
   }
 
   async getChartData(userId: number) {
@@ -146,73 +212,16 @@ export class ScoreService {
     return records.map((record) => ({
       courseCode: record.courseCode,
       semester: `HK${record.semesterNumber}-${record.year}`,
+      semesterNumber: record.semesterNumber,
+      year: record.year,
+      studyFormat: record.studyFormat,
+      creditsUnit: record.creditsUnit,
       actual: record.rawScore,
       predicted: record.predictedScores[0]?.predictedScore ?? null,
     }));
   }
-  async inferStudyFromScore(input: {
-    rawScore: number;
-    familySupport: number;
-    commuteTimeMinutes: number;
-    courseCode: string;
-    studyFormat: string;
-    creditsUnit: number;
-    semesterNumber: number;
-    year: string;
-  }) {
-    const candidates: { weeklyStudyHours: number; attendancePercentage: number; error: number }[] = [];
-  
-    for (let weekly = 5; weekly <= 25; weekly += 1) {
-      for (let attend = 50; attend <= 100; attend += 5) {
-        const sxa = weekly * (attend / 100);
-        const axs = (attend / 100) * input.familySupport;
-        const interaction = weekly * input.commuteTimeMinutes * (attend / 100) * input.familySupport;
-  
-        const hint = (
-          attend >= 85 ||
-          (weekly >= 15 && attend >= 90) ||
-          (weekly >= 20 && attend >= 70) ||
-          (input.familySupport >= 4 && attend >= 95) ||
-          (input.familySupport >= 3 && attend >= 85)
-        ) ? 1 : 0;
-  
-        const failRateGeneral = Math.max(0, 1 - attend / 100);
-        const failRateMajor = Math.max(0, 1 - sxa / 20);
-  
-        const payload = {
-          semester_number: input.semesterNumber,
-          course_code: input.courseCode,
-          study_format: input.studyFormat,
-          credits_unit: input.creditsUnit,
-          weekly_study_hours: weekly,
-          attendance_percentage: attend,
-          commute_time_minutes: input.commuteTimeMinutes,
-          family_support: input.familySupport,
-          study_hours_x_attendance: sxa,
-          attendance_x_support: axs,
-          full_interaction_feature: interaction,
-          expected_score_hint: hint,
-          fail_rate_general: failRateGeneral,
-          fail_rate_major: failRateMajor
-        };
-  
-        try {
-          const res = await axios.post('http://localhost:8000/predict', payload);
-          const predicted = res.data.predicted_score;
-          const error = Math.abs(predicted - input.rawScore);
-  
-          candidates.push({ weeklyStudyHours: weekly, attendancePercentage: attend, error });
-        } catch (e) {
-          console.warn('Error calling ML:', e.message);
-        }
-      }
-    }
-  
-    // Chọn best
-    const best = candidates.sort((a, b) => a.error - b.error)[0];
-    return best;
-  }
-  
+
+
   private readCsv(path: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
       const results: any[] = [];

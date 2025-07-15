@@ -5,17 +5,20 @@ import {
   UseInterceptors,
   BadRequestException,
   Get,
-  Body,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { ScoreService } from './score.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { User } from '@prisma/client';
 
 @Controller('scores')
 export class ScoreController {
   constructor(private readonly scoreService: ScoreService) {}
-
+  @UseGuards(JwtAuthGuard)
   @Post('upload')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -34,16 +37,16 @@ export class ScoreController {
       },
     }),
   )
-  async uploadCsv(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('Không có file được upload');
-    }
-    return this.scoreService.importFromCsv(file.path);
+  async uploadCsv(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: User,
+  ) {
+    return this.scoreService.importFromCsv(file.path, user.id);
   }
-
   @Get('chart-data')
-  async getChartData() {
-    // Sử dụng user ID = 1 làm mặc định
-    return this.scoreService.getChartData(1);
+  @UseGuards(JwtAuthGuard)
+  async getChartData(@CurrentUser() user: { id: number }) {
+    return this.scoreService.getChartData(user.id);
   }
-}
+  
+}  

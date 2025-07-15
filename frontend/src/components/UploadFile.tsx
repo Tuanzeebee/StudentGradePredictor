@@ -21,35 +21,46 @@ const UploadFile: React.FC = () => {
       setMessage('Vui lòng chọn file để upload');
       return;
     }
-
+  
     setIsLoading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
-
+  
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setMessage('❌ Bạn chưa đăng nhập. Vui lòng đăng nhập lại!');
+        setIsLoading(false);
+        return;
+      }
+      
       const response = await fetch('http://localhost:3000/scores/upload', {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,  
+        },
         body: formData,
       });
-
+      
+  
       if (response.ok) {
         setMessage('Upload thành công!');
         setFile(null);
         setShowChartButton(true);
-        // Reset file input
         const fileInput = document.getElementById('file-input') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
       } else {
-        setMessage('Upload thất bại. Vui lòng thử lại!');
+        const text = await response.text(); // 👈 để in lỗi chi tiết hơn
+        setMessage(`Upload thất bại: ${text}`);
         setShowChartButton(false);
       }
-          } catch (error) {
-        setMessage('Có lỗi xảy ra khi upload file');
-        setShowChartButton(false);
-      } finally {
-        setIsLoading(false);
-      }
-  };
+    } catch (error) {
+      setMessage('Có lỗi xảy ra khi upload file');
+      setShowChartButton(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };  
 
   return (
     <div style={{ 

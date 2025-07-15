@@ -7,6 +7,9 @@ interface ScoreData {
   semester: string;
   actual?: number;
   predicted?: number;
+  semesterNumber: number;
+  studyFormat: string;
+  creditsUnit: number;
 }
 
 const ScoreChartPage: React.FC = () => {
@@ -14,228 +17,188 @@ const ScoreChartPage: React.FC = () => {
   const [scoreData, setScoreData] = useState<ScoreData[]>([]);
   const [totalGPA, setTotalGPA] = useState<number>(0);
   const [totalCourses, setTotalCourses] = useState<number>(0);
-  const [inferredResults, setInferredResults] = useState<{[key: number]: {attendancePercentage: number, weeklyStudyHours: number}}>({});
+  const [predictedScores, setPredictedScores] = useState<{ [index: number]: number }>({});
+  const [supportValues, setSupportValues] = useState<{ [index: number]: number }>({});
+  const [commuteValues, setCommuteValues] = useState<{ [index: number]: number }>({});
+  const [attendanceValues, setAttendanceValues] = useState<{ [index: number]: number }>({});
+  const [rawScores, setRawScores] = useState<{ [index: number]: number }>({});
+  const [inferredResults, setInferredResults] = useState<{ [index: number]: { weeklyStudyHours: number } }>({});
 
   const handleSupportChange = (index: number, value: number) => {
-    // Handle family support change
-    console.log(`Support changed for index ${index}: ${value}`);
+    setSupportValues(prev => ({ ...prev, [index]: value }));
   };
-
   const handleCommuteChange = (index: number, value: number) => {
-    // Handle commute time change
-    console.log(`Commute time changed for index ${index}: ${value}`);
+    setCommuteValues(prev => ({ ...prev, [index]: value }));
+  };
+  const handleAttendanceChange = (index: number, value: number) => {
+    setAttendanceValues(prev => ({ ...prev, [index]: value }));
   };
 
-  const handleInfer = (index: number) => {
-    // Simulate inference result
-    const result = {
-      attendancePercentage: Math.floor(Math.random() * 30) + 70, // 70-100%
-      weeklyStudyHours: Math.floor(Math.random() * 10) + 10 // 10-20 hours
-    };
-    setInferredResults(prev => ({...prev, [index]: result}));
+  const handleInferAndPredict = async (index: number) => {
+    const item = scoreData[index];
+    const rawScore = rawScores[index];
+    const commute = commuteValues[index];
+    const support = supportValues[index];
+    const attendance = attendanceValues[index];
+
+    if ([rawScore, commute, support, attendance].some(v => v === undefined || isNaN(v))) return;
+
+    try {
+      const reverseRes = await fetch("http://localhost:8000/reverse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          semester_number: item.semesterNumber,
+          course_code: item.courseCode,
+          study_format: item.studyFormat,
+          credits_unit: item.creditsUnit,
+          raw_score: rawScore,
+          attendance_percentage: attendance,
+          part_time_hours: commute,
+          family_support: support,
+        }),
+      });
+
+      const reverseResult = await reverseRes.json();
+      if (!reverseResult.predicted_weekly_study_hours) return;
+
+      const weeklyStudyHours = reverseResult.predicted_weekly_study_hours;
+      setInferredResults(prev => ({ ...prev, [index]: { weeklyStudyHours } }));
+
+      const sxa = weeklyStudyHours * (attendance / 100);
+      const sxp = weeklyStudyHours * commute;
+      const fxp = support * commute;
+      const axs = (attendance / 100) * support;
+      const full = weeklyStudyHours * (attendance / 100) * commute * support;
+
+      const predictRes = await fetch("http://localhost:8000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          semester_number: item.semesterNumber,
+          course_code: item.courseCode,
+          study_format: item.studyFormat,
+          credits_unit: item.creditsUnit,
+          weekly_study_hours: weeklyStudyHours,
+          attendance_percentage: attendance,
+          part_time_hours: commute,
+          family_support: support,
+          study_hours_x_attendance: sxa,
+          study_hours_x_part_part_time_hours: sxp,
+          family_support_x_part_time_hours: fxp,
+          attendance_x_support: axs,
+          full_interaction_feature: full,
+        }),
+      });
+
+      const predictResult = await predictRes.json();
+      if (predictResult.predicted_score !== undefined) {
+        setPredictedScores(prev => ({ ...prev, [index]: predictResult.predicted_score }));
+      }
+
+    } catch (err) {
+      console.error("❌ Lỗi dự đoán:", err);
+    }
   };
+
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return navigate('/login');
+
+      const res = await fetch("http://localhost:3000/scores/chart-data", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data)) throw new Error("Dữ liệu lỗi");
+
+      setScoreData(data);
+
+      const rawMap: { [index: number]: number } = {};
+      data.forEach((item, idx) => {
+        if (item.actual != null) rawMap[idx] = item.actual;
+      });
+      setRawScores(rawMap);
+
+      const validScores = data.filter((item) => item.actual && item.actual > 0);
+      const totalScore = validScores.reduce((sum, item) => sum + (item.actual || 0), 0);
+      setTotalGPA(validScores.length ? totalScore / validScores.length : 0);
+      setTotalCourses(validScores.length);
+    } catch (err) {
+      console.error("Lỗi fetch chart-data:", err);
+    }
+  };
+
+  fetchData();
+}, []);
 
   useEffect(() => {
-    // Fetch data for GPA calculation
-    fetch('http://localhost:3000/scores/chart-data')
-      .then((res) => res.json())
-      .then((data) => {
-        setScoreData(data);
-        
-        // Calculate total GPA from actual scores
-        const validScores = data.filter((item: ScoreData) => item.actual && item.actual > 0);
-        const totalScore = validScores.reduce((sum: number, item: ScoreData) => sum + (item.actual || 0), 0);
-        const averageGPA = validScores.length > 0 ? totalScore / validScores.length : 0;
-        
-        setTotalGPA(parseFloat(averageGPA.toFixed(2)));
-        setTotalCourses(validScores.length);
-      })
-      .catch((error) => {
-        console.error('Error fetching score data:', error);
-      });
-  }, []);
+    scoreData.forEach((_, index) => {
+      const rawScore = rawScores[index];
+      const commute = commuteValues[index];
+      const support = supportValues[index];
+      const attendance = attendanceValues[index];
+
+      const valid = [rawScore, commute, support, attendance].every(v => v !== undefined && !isNaN(v));
+      if (valid) handleInferAndPredict(index);
+    });
+  }, [scoreData, rawScores, commuteValues, supportValues, attendanceValues]);
 
   return (
-    <div style={{ 
-      padding: '30px',
-      minHeight: '100vh',
-      backgroundColor: '#f8f9fa'
-    }}>
-      <div style={{ 
-        textAlign: 'center', 
-        marginBottom: '30px' 
-      }}>
-        <h1 style={{ 
-          color: '#333',
-          marginBottom: '10px'
-        }}>
-          Biểu Đồ Điểm Số
-        </h1>
-        <p style={{ 
-          color: '#666',
-          marginBottom: '20px'
-        }}>
-          Xem biểu đồ so sánh điểm thực tế và điểm dự đoán
-        </p>
-      </div>
+    <div style={{ padding: '30px', backgroundColor: '#f8f9fa' }}>
+      <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Biểu Đồ Điểm Số</h1>
+      <ScoreChart />
+      {scoreData.map((item, index) => (
+        <div key={index} style={{ background: '#fff', borderRadius: '8px', padding: '15px', marginBottom: '20px' }}>
+          <h4>Môn: {item.courseCode} – {item.semester}</h4>
+          <p>Raw Score: {rawScores[index] ?? '—'}</p>
+<label><strong>Hỗ trợ gia đình:</strong><br/>
+  <select value={supportValues[index] ?? 1} onChange={(e) => handleSupportChange(index, parseInt(e.target.value))}>
+    <option value={0}>Thấp</option>
+    <option value={1}>Trung bình</option>
+    <option value={2}>Cao</option>
+    <option value={3}>Rất cao</option>
+  </select>
+</label><br/>
+      <label><strong>Thời Gian Đi Làm (giờ/tuần):</strong><br/>
+        <input
+          type="number"
+          min={0}
+          max={40}
+          value={commuteValues[index] ?? ''}
+          onChange={(e) => handleCommuteChange(index, parseInt(e.target.value))}
+        />
+      </label><br/>
 
-      {/* GPA Summary Card */}
-      <div style={{ 
-        backgroundColor: 'white',
-        borderRadius: '10px',
-        padding: '20px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        marginBottom: '20px',
-        textAlign: 'center'
-      }}>
-        <h3 style={{ color: '#333', marginBottom: '15px' }}>Tổng Kết GPA</h3>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-around',
-          flexWrap: 'wrap',
-          gap: '20px'
-        }}>
-          <div style={{ 
-            backgroundColor: '#e3f2fd',
-            padding: '15px',
-            borderRadius: '8px',
-            minWidth: '150px'
-          }}>
-            <h4 style={{ color: '#1976d2', margin: '0 0 5px 0' }}>GPA Trung Bình</h4>
-            <p style={{ 
-              fontSize: '24px', 
-              fontWeight: 'bold', 
-              color: '#1976d2',
-              margin: '0'
-            }}>
-              {totalGPA.toFixed(2)}
-            </p>
-          </div>
-          <div style={{ 
-            backgroundColor: '#f3e5f5',
-            padding: '15px',
-            borderRadius: '8px',
-            minWidth: '150px'
-          }}>
-            <h4 style={{ color: '#7b1fa2', margin: '0 0 5px 0' }}>Tổng Số Môn</h4>
-            <p style={{ 
-              fontSize: '24px', 
-              fontWeight: 'bold', 
-              color: '#7b1fa2',
-              margin: '0'
-            }}>
-              {totalCourses}
-            </p>
-          </div>
-        </div>
-        
-        {/* Notes Section */}
-        <div style={{ 
-          marginTop: '20px',
-          padding: '15px',
-          backgroundColor: '#fff3e0',
-          borderRadius: '8px',
-          borderLeft: '4px solid #ff9800'
-        }}>
-          <h4 style={{ color: '#e65100', margin: '0 0 10px 0' }}>📝 Ghi Chú:</h4>
-          <ul style={{ 
-            textAlign: 'left', 
-            margin: '0', 
-            paddingLeft: '20px',
-            color: '#e65100'
-          }}>
-            <li><strong>RawScore:</strong> Điểm thực tế của từng môn học (thang điểm 10)</li>
-            <li><strong>GPA:</strong> Điểm trung bình được tính từ tất cả các môn học</li>
-            <li><strong>Điểm dự đoán:</strong> Điểm được dự đoán dựa trên thuật toán AI</li>
-            <li><strong>Biểu đồ:</strong> So sánh giữa điểm thực tế (xanh dương) và điểm dự đoán (xanh lá)</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Chart Container */}
-      <div style={{ 
-        backgroundColor: 'white',
-        borderRadius: '10px',
-        padding: '20px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        marginBottom: '20px'
-      }}>
-        <ScoreChart />
-        {scoreData
-  .filter((item) => item.actual && item.actual > 0)
-  .map((item, index) => (
-    <div key={index} style={{ marginBottom: '20px', padding: '15px', background: '#fff', borderRadius: '8px' }}>
-      <h4 style={{ marginBottom: '10px' }}>Môn: {item.courseCode} – {item.semester}</h4>
-      <label>
-        Hỗ trợ gia đình:
-        <select defaultValue={1} onChange={(e) => handleSupportChange(index, parseInt(e.target.value))}>
-          <option value={0}>Thấp</option>
-          <option value={1}>Trung bình</option>
-          <option value={2}>Cao</option>
-          <option value={3}>Rất cao</option>
-        </select>
-      </label>
-      <label style={{ marginLeft: '20px' }}>
-        Thời gian đi học (phút):
-        <input 
-          type="number" 
-          min={5} 
-          max={60} 
-          defaultValue={25} 
-          style={{ width: '60px', marginLeft: '5px' }}
-          onChange={(e) => handleCommuteChange(index, parseInt(e.target.value))} 
+      <label><strong>Tỷ lệ chuyên cần (%):</strong><br/>
+        <input
+          type="number"
+          min={50}
+          max={100}
+          value={attendanceValues[index] ?? ''}
+          onChange={(e) => handleAttendanceChange(index, parseInt(e.target.value))}
         />
       </label>
-      <button onClick={() => handleInfer(index)} style={{ marginLeft: '20px' }}>
-        Tính thời gian học & điểm danh
-      </button>
-
-      {/* Kết quả dự đoán hiển thị ở đây */}
-      {inferredResults[index] && (
-        <div style={{ marginTop: '10px', color: '#007bff' }}>
-          👉 attendance: {inferredResults[index].attendancePercentage}% – weeklyStudyHours: {inferredResults[index].weeklyStudyHours}
+          
+          {predictedScores[index] !== undefined && (
+            <div style={{ marginTop: '10px', color: '#28a745' }}>
+              🎯 Điểm dự đoán: {predictedScores[index].toFixed(2)}
+            </div>
+          )}
+          {inferredResults[index] && (
+            <div style={{ marginTop: '10px', color: '#007bff' }}>
+              👉 Thời gian học ước tính: {inferredResults[index].weeklyStudyHours.toFixed(1)} giờ/tuần
+            </div>
+          )}
         </div>
-      )}
-    </div>
-))}
-
-      </div>
-
-      <div style={{ textAlign: 'center' }}>
-        <button 
-          onClick={() => navigate('/landing')}
-          style={{ 
-            padding: '12px 30px', 
-            fontSize: '16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            margin: '0 10px'
-          }}
-        >
-          Về Trang Chính
-        </button>
-        
-        <button 
-          onClick={() => navigate('/')}
-          style={{ 
-            padding: '12px 30px', 
-            fontSize: '16px',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            margin: '0 10px'
-          }}
-        >
-          Về Trang Chủ
-        </button>
-      </div>
+      ))}
     </div>
   );
 };
 
-export default ScoreChartPage; 
+export default ScoreChartPage;
