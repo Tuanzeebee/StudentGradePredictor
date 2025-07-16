@@ -6,11 +6,13 @@ import {
   BadRequestException,
   Get,
   UseGuards,
+  Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { ScoreService } from './score.service';
+import { SaveScoreDto } from './dto/save-score.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { User } from '@prisma/client';
@@ -48,5 +50,13 @@ export class ScoreController {
   async getChartData(@CurrentUser() user: { id: number }) {
     return this.scoreService.getChartData(user.id);
   }
-  
-}  
+
+  @Post('save')
+  @UseGuards(JwtAuthGuard)
+  async savePredictedScore(
+    @Body() saveScoreDto: SaveScoreDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.scoreService.savePredictedScore(saveScoreDto, user.id);
+  }
+}

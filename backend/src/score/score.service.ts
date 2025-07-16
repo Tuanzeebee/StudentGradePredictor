@@ -232,4 +232,87 @@ export class ScoreService {
         .on('error', reject);
     });
   }
+
+  async savePredictedScore(saveScoreDto: SaveScoreDto, userId: number) {
+    const {
+      semesterNumber,
+      year,
+      courseCode,
+      predictedScore,
+      weeklyStudyHours,
+      attendancePercentage,
+      commuteTimeMinutes,
+      familySupport,
+      studyFormat,
+      creditsUnit,
+    } = saveScoreDto;
+
+    // Check if scoreRecord already exists
+    let scoreRecord = await this.prisma.scoreRecord.findFirst({
+      where: {
+        userId,
+        semesterNumber,
+        year,
+        courseCode,
+        studyFormat,
+      },
+    });
+
+    // If no existing record, create a new one
+    if (!scoreRecord) {
+      scoreRecord = await this.prisma.scoreRecord.create({
+        data: {
+          userId,
+          semesterNumber,
+          year,
+          courseCode,
+          studyFormat,
+          creditsUnit,
+          rawScore: null, // Will be filled when actual score is available
+          currentSemesterGpa: null,
+          cumulativeGpa: null,
+          previousCoursesTaken: 0,
+          commuteTimeMinutes,
+          familySupport,
+          weeklyStudyHours,
+          attendancePercentage,
+        },
+      });
+    } else {
+      // Update existing record with new prediction data
+      scoreRecord = await this.prisma.scoreRecord.update({
+        where: { id: scoreRecord.id },
+        data: {
+          commuteTimeMinutes,
+          familySupport,
+          weeklyStudyHours,
+          attendancePercentage,
+        },
+      });
+    }
+
+    // Delete existing prediction for this record
+    await this.prisma.predictedScore.deleteMany({
+      where: { scoreRecordId: scoreRecord.id },
+    });
+
+    // Create new prediction
+    const prediction = await this.prisma.predictedScore.create({
+      data: {
+        scoreRecordId: scoreRecord.id,
+        predictedScore,
+        semesterNumber,
+        year,
+        courseCode,
+        mode: 'auto-prediction',
+      },
+    });
+
+    return {
+      success: true,
+      scoreRecord,
+      prediction,
+      message: 'Prediction saved successfully',
+    };
+  }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import {
   LineChart,
   Line,
@@ -9,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { getChartData } from '../api';
 
 type DataPoint = {
   courseCode: string;
@@ -17,26 +18,35 @@ type DataPoint = {
   predicted?: number;
 };
 
-const ScoreChart: React.FC = () => {
+export interface ScoreChartRef {
+  refreshData: () => Promise<void>;
+}
+
+const ScoreChart = forwardRef<ScoreChartRef>((_, ref) => {
   const [data, setData] = useState<DataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getChartData();
+      setData(response.data);
+    } catch (err: any) {
+      console.error('Error fetching data:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to fetch chart data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    refreshData: fetchData,
+  }));
+
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch('http://localhost:3000/scores/chart-data', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch chart data');
-        return res.json();
-      })
-      .then(setData)
-      .catch((err) => {
-        console.error('Error fetching data:', err);
-        setError(err.message);
-      })
-      .finally(() => setLoading(false));
+    fetchData();
   }, []);
 
   if (loading || error || data.length === 0) {
@@ -94,6 +104,8 @@ const ScoreChart: React.FC = () => {
       </ResponsiveContainer>
     </div>
   );
-};
+});
+
+ScoreChart.displayName = 'ScoreChart';
 
 export default ScoreChart;

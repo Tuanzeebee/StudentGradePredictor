@@ -36,7 +36,11 @@ This is a **Student Grade Predictor** system with three main components:
 ### ML Service (FastAPI)
 - **Framework**: FastAPI with Python
 - **Models**: MLPRegressor and XGBoost for grade prediction
+- **Main API File**: `predict_api_1.py` (use this instead of predict_api.py)
 - **Features**: Reverse engineering of student factors and grade prediction
+- **Endpoints**: 
+  - `/reverse`: Infers weekly_study_hours from known raw_score
+  - `/predict`: Predicts raw_score from study features (auto-calculates interaction features)
 
 ## Coding Guidelines
 
@@ -183,11 +187,25 @@ export class CreateExampleDto {
 - JWT token expiration and refresh
 - CORS configuration for production
 
+### How to Start Services:
+
+```bash
+# Backend (NestJS) - Port 3000
+cd backend && npm run start:dev
+
+# Frontend (React) - Port 5173  
+cd frontend && npm run dev
+
+# ML Service (FastAPI) - Port 8000
+cd ml_service && python predict_api_1.py
+```
+
 ## Deployment Notes
 - Use environment-specific configurations
 - Implement health check endpoints
 - Set up proper logging
 - Configure database migrations
 - Set up ML model versioning
+- **Important**: Use `predict_api_1.py` for ML service (not predict_api.py)
 
 When working on this project, prioritize clean code, proper error handling, and maintainable architecture following NestJS and React best practices.
