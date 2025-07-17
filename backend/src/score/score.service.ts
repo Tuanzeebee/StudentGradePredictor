@@ -207,9 +207,16 @@ export class ScoreService {
     const records = await this.prisma.scoreRecord.findMany({
       where: { userId },
       include: { predictedScores: true },
+      orderBy: [
+        { year: 'asc' },
+        { semesterNumber: 'asc' }
+      ]
     });
 
-    return records.map((record) => ({
+    // Get GPA statistics
+    const gpaStats = await this.getGPAStats(userId);
+
+    const chartData = records.map((record) => ({
       courseCode: record.courseCode,
       semester: `HK${record.semesterNumber}-${record.year}`,
       semesterNumber: record.semesterNumber,
@@ -218,7 +225,16 @@ export class ScoreService {
       creditsUnit: record.creditsUnit,
       actual: record.rawScore,
       predicted: record.predictedScores[0]?.predictedScore ?? null,
+      actualGPA: record.rawScore ? this.convertRawScoreToGPA(record.rawScore) : null,
+      predictedGPA: record.predictedScores[0]?.predictedScore 
+        ? this.convertRawScoreToGPA(record.predictedScores[0].predictedScore) 
+        : null,
     }));
+
+    return {
+      chartData,
+      gpaStats
+    };
   }
 
 
@@ -315,4 +331,173 @@ export class ScoreService {
       message: 'Prediction saved successfully',
     };
   }
+
+  // Helper method to convert raw score to GPA (assuming 4.0 scale)
+  private convertRawScoreToGPA(rawScore: number): number {
+    // Assuming raw score is out of 10, convert to 4.0 GPA scale
+    if (rawScore >= 8.5) return 4.0;
+    if (rawScore >= 8.0) return 3.7;
+    if (rawScore >= 7.5) return 3.3;
+    if (rawScore >= 7.0) return 3.0;
+    if (rawScore >= 6.5) return 2.7;
+    if (rawScore >= 6.0) return 2.3;
+    if (rawScore >= 5.5) return 2.0;
+    if (rawScore >= 5.0) return 1.7;
+    if (rawScore >= 4.0) return 1.0;
+    return 0.0;
+  }
+
+  private calculateWeightedGPA(scores: Array<{ rawScore: number; creditsUnit: number }>): number {
+    console.log(`🔍 DEBUG calculateWeightedGPA: Input scores length: ${scores.length}`);
+    
+    const totalCredits = scores.reduce((sum, score) => sum + score.creditsUnit, 0);
+    console.log(`🔍 DEBUG calculateWeightedGPA: Total credits: ${totalCredits}`);
+    
+    if (totalCredits === 0) return 0;
+
+    const totalGradePoints = scores.reduce((sum, score) => {
+      const gpa = this.convertRawScoreToGPA(score.rawScore);
+      console.log(`🔍 DEBUG: Raw score ${score.rawScore} -> GPA ${gpa} (${score.creditsUnit} credits)`);
+      return sum + (gpa * score.creditsUnit);
+    }, 0);
+
+    console.log(`🔍 DEBUG calculateWeightedGPA: Total grade points: ${totalGradePoints}`);
+    const finalGPA = totalGradePoints / totalCredits;
+    console.log(`🔍 DEBUG calculateWeightedGPA: Final GPA: ${finalGPA}`);
+
+    return finalGPA;
+  }
+
+  async getGPAStats(userId: number) {
+    // Get ALL records for this user, not just those with actual scores
+    const allRecords = await this.prisma.scoreRecord.findMany({
+      where: { userId },
+      include: { predictedScores: true },
+      orderBy: [
+        { year: 'asc' },
+        { semesterNumber: 'asc' }
+      ]
+    });
+
+    console.log(`🔍 DEBUG: Total records found: ${allRecords.length}`);
+    
+    // Calculate cumulative GPA from actual scores only
+    const actualScores = allRecords
+      .filter(record => record.rawScore !== null)
+      .map(record => ({
+        rawScore: record.rawScore!,
+        creditsUnit: record.creditsUnit
+      }));
+
+    console.log(`🔍 DEBUG: Actual scores count: ${actualScores.length}`);
+    console.log(`🔍 DEBUG: Total actual credits: ${actualScores.reduce((sum, s) => sum + s.creditsUnit, 0)}`);
+    console.log(`🔍 DEBUG: Sample actual scores:`, actualScores.slice(0, 5));
+
+    const cumulativeGPA = this.calculateWeightedGPA(actualScores);
+
+    // Calculate predicted GPA from ALL courses that have predictions
+    const predictedScores = allRecords
+      .filter(record => record.predictedScores.length > 0 && record.predictedScores[0].predictedScore !== null)
+      .map(record => ({
+        rawScore: record.predictedScores[0].predictedScore!,
+        creditsUnit: record.creditsUnit
+      }));
+
+    const predictedGPA = this.calculateWeightedGPA(predictedScores);
+
+    // Calculate "projected" GPA: actual scores + predicted scores for courses without actual scores
+    const projectedScores: Array<{ rawScore: number; creditsUnit: number }> = [];
+    
+    allRecords.forEach(record => {
+      if (record.rawScore !== null) {
+        // Use actual score if available
+        projectedScores.push({
+          rawScore: record.rawScore,
+          creditsUnit: record.creditsUnit
+        });
+      } else if (record.predictedScores.length > 0 && record.predictedScores[0].predictedScore !== null) {
+        // Use predicted score if no actual score
+        projectedScores.push({
+          rawScore: record.predictedScores[0].predictedScore,
+          creditsUnit: record.creditsUnit
+        });
+      }
+    });
+
+    const projectedGPA = this.calculateWeightedGPA(projectedScores);
+
+    // Semester-wise GPA
+    const semesterGPAs: Array<{
+      semester: string;
+      actualGPA: number;
+      predictedGPA: number;
+      projectedGPA: number;
+      completedCredits: number;
+      totalCredits: number;
+      predictedCredits: number;
+    }> = [];
+
+    const semesterGroups = allRecords.reduce((groups, record) => {
+      const semesterKey = `HK${record.semesterNumber}-${record.year}`;
+      if (!groups[semesterKey]) groups[semesterKey] = [];
+      groups[semesterKey].push(record);
+      return groups;
+    }, {} as Record<string, typeof allRecords>);
+
+    Object.entries(semesterGroups).forEach(([semester, records]) => {
+      const actualRecords = records.filter(r => r.rawScore !== null);
+      const predictedRecords = records.filter(r => r.predictedScores.length > 0 && r.predictedScores[0].predictedScore !== null);
+      
+      // Combined records for projected GPA
+      const combinedRecords: Array<{ rawScore: number; creditsUnit: number }> = [];
+      records.forEach(record => {
+        if (record.rawScore !== null) {
+          combinedRecords.push({ rawScore: record.rawScore, creditsUnit: record.creditsUnit });
+        } else if (record.predictedScores.length > 0 && record.predictedScores[0].predictedScore !== null) {
+          combinedRecords.push({ rawScore: record.predictedScores[0].predictedScore, creditsUnit: record.creditsUnit });
+        }
+      });
+      
+      const actualGPA = actualRecords.length > 0 
+        ? this.calculateWeightedGPA(actualRecords.map(r => ({ rawScore: r.rawScore!, creditsUnit: r.creditsUnit })))
+        : 0;
+        
+      const predictedGPA = predictedRecords.length > 0
+        ? this.calculateWeightedGPA(predictedRecords.map(r => ({ rawScore: r.predictedScores[0].predictedScore!, creditsUnit: r.creditsUnit })))
+        : 0;
+
+      const projectedGPA = combinedRecords.length > 0
+        ? this.calculateWeightedGPA(combinedRecords)
+        : 0;
+
+      const completedCredits = actualRecords.reduce((sum, r) => sum + r.creditsUnit, 0);
+      const totalCredits = records.reduce((sum, r) => sum + r.creditsUnit, 0);
+      const predictedCredits = predictedRecords.reduce((sum, r) => sum + r.creditsUnit, 0);
+
+      semesterGPAs.push({
+        semester,
+        actualGPA,
+        predictedGPA,
+        projectedGPA,
+        completedCredits,
+        totalCredits,
+        predictedCredits
+      });
+    });
+
+    return {
+      cumulativeGPA,        // GPA từ điểm thực tế đã có
+      predictedGPA,         // GPA từ tất cả dự đoán
+      projectedGPA,         // GPA kết hợp (thực tế + dự đoán cho môn thiếu)
+      totalCompletedCredits: actualScores.reduce((sum, s) => sum + s.creditsUnit, 0),
+      totalCredits: allRecords.reduce((sum, r) => sum + r.creditsUnit, 0),
+      totalPredictedCredits: predictedScores.reduce((sum, s) => sum + s.creditsUnit, 0),
+      semesterGPAs,
+      totalCourses: allRecords.length,
+      completedCourses: actualScores.length,
+      predictedCourses: predictedScores.length
+    };
+  }
+
+  // ...existing code...
 }

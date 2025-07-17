@@ -9,10 +9,33 @@ interface ScoreData {
   semester: string;
   actual?: number;
   predicted?: number;
+  actualGPA?: number;
+  predictedGPA?: number;
   semesterNumber: number;
   year: string;
   studyFormat: string;
   creditsUnit: number;
+}
+
+interface GPAStats {
+  cumulativeGPA: number;
+  predictedGPA: number;
+  projectedGPA: number;
+  totalCompletedCredits: number;
+  totalCredits: number;
+  totalPredictedCredits: number;
+  totalCourses: number;
+  completedCourses: number;
+  predictedCourses: number;
+  semesterGPAs: Array<{
+    semester: string;
+    actualGPA: number;
+    predictedGPA: number;
+    projectedGPA: number;
+    completedCredits: number;
+    totalCredits: number;
+    predictedCredits: number;
+  }>;
 }
 
 type InputMode = 'per-course' | 'by-semester' | 'apply-all';
@@ -31,6 +54,7 @@ const ScoreChartPage: React.FC = () => {
   const navigate = useNavigate();
   const chartRef = useRef<ScoreChartRef>(null);
   const [scoreData, setScoreData] = useState<ScoreData[]>([]);
+  const [gpaStats, setGpaStats] = useState<GPAStats | null>(null);
   const [predictedScores, setPredictedScores] = useState<{ [index: number]: number }>({});
   const [supportValues, setSupportValues] = useState<{ [index: number]: number }>({});
   const [commuteValues, setCommuteValues] = useState<{ [index: number]: number }>({});
@@ -129,9 +153,16 @@ const ScoreChartPage: React.FC = () => {
             creditsUnit: item.creditsUnit,
           });
 
-          // Step 4: Refresh the chart to show updated data
+          // Step 4: Refresh the chart to show updated data and fetch new GPA stats
           if (chartRef.current) {
             await chartRef.current.refreshData();
+          }
+
+          // Step 5: Refetch GPA stats to update the page
+          const updatedResponse = await getChartData();
+          const updatedData = updatedResponse.data;
+          if (updatedData.gpaStats) {
+            setGpaStats(updatedData.gpaStats);
           }
 
           console.log('✅ Prediction saved successfully!');
@@ -155,32 +186,40 @@ useEffect(() => {
       if (!token) return navigate('/login');
 
       const response = await getChartData();
-      const data = response.data;
+      const responseData = response.data;
       
-      if (!Array.isArray(data)) throw new Error("Dữ liệu lỗi");
-
-      setScoreData(data);
+      // Handle new response structure
+      if (responseData.chartData && responseData.gpaStats) {
+        setScoreData(responseData.chartData);
+        setGpaStats(responseData.gpaStats);
+      } else {
+        // Fallback for old response format
+        setScoreData(responseData);
+      }
 
       // Extract unique semesters for semester mode
-      const uniqueSemesters = [...new Set(data.map(item => item.semester))];
-      setAvailableSemesters(uniqueSemesters);
+      const data = responseData.chartData || responseData;
+      if (Array.isArray(data)) {
+        const uniqueSemesters = [...new Set(data.map((item: ScoreData) => item.semester))].filter((s): s is string => typeof s === 'string');
+        setAvailableSemesters(uniqueSemesters);
 
-      // Initialize semester values with defaults
-      const initialSemesterValues: SemesterValues = {};
-      uniqueSemesters.forEach(semester => {
-        initialSemesterValues[semester] = {
-          familySupport: 1,
-          commuteHours: 0,
-          attendance: 90,
-        };
-      });
-      setSemesterValues(initialSemesterValues);
+        // Initialize semester values with defaults
+        const initialSemesterValues: SemesterValues = {};
+        uniqueSemesters.forEach(semester => {
+          initialSemesterValues[semester] = {
+            familySupport: 1,
+            commuteHours: 0,
+            attendance: 90,
+          };
+        });
+        setSemesterValues(initialSemesterValues);
 
-      const rawMap: { [index: number]: number } = {};
-      data.forEach((item, idx) => {
-        if (item.actual != null) rawMap[idx] = item.actual;
-      });
-      setRawScores(rawMap);
+        const rawMap: { [index: number]: number } = {};
+        data.forEach((item: ScoreData, idx: number) => {
+          if (item.actual != null) rawMap[idx] = item.actual;
+        });
+        setRawScores(rawMap);
+      }
     } catch (err) {
       console.error("Lỗi fetch chart-data:", err);
       // If token is invalid, redirect to login
@@ -310,8 +349,8 @@ useEffect(() => {
 
   return (
     <div style={{ padding: '30px', backgroundColor: '#f8f9fa' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Biểu Đồ Điểm Số</h1>
-      <ScoreChart ref={chartRef} />
+      <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Biểu Đồ Điểm Số & GPA</h1>
+      <ScoreChart ref={chartRef} gpaStats={gpaStats || undefined} />
       
       <div style={{ marginTop: '30px' }}>
         <h2>Dự đoán điểm số</h2>

@@ -59,4 +59,10 @@ export class ScoreController {
   ) {
     return this.scoreService.savePredictedScore(saveScoreDto, user.id);
   }
+
+  @Get('gpa-stats')
+  @UseGuards(JwtAuthGuard)
+  async getGPAStats(@CurrentUser() user: User) {
+    return this.scoreService.getGPAStats(user.id);
+  }
 }

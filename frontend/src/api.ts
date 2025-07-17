@@ -34,4 +34,13 @@ export const getChartData = async () => {
   });
 };
 
+export const getGPAStats = async () => {
+  const token = localStorage.getItem('token');
+  return api.get('/scores/gpa-stats', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
 export default api;
