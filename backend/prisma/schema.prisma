@@ -51,6 +51,8 @@ model ScoreRecord {
   familySupportXPartTimeHours  Float?
   partTimeHours                Float?
   studyHoursXPartPartTimeHours Float?
+  convertedNumericScore        Float?
+  convertedScore               String?
   predictedScores              PredictedScore[]
   user                         User             @relation(fields: [userId], references: [id])
 
@@ -58,21 +60,17 @@ model ScoreRecord {
 }
 
 model PredictedScore {
-  id                           Int          @id @default(autoincrement())
-  semesterNumber               Int
-  year                         String
-  courseCode                   String
-  studyHoursXAttendance        Float?
-  attendanceXSupport           Float?
-  fullInteractionFeature       Float?
-  predictedScore               Float?
-  createdAt                    DateTime     @default(now())
-  updatedAt                    DateTime     @updatedAt
-  scoreRecordId                Int?
-  mode                         String?
-  predictedAttendancePercent   Float?
-  predictedWeeklyStudyHours    Float?
-  familySupportXPartTimeHours  Float?
-  studyHoursXPartPartTimeHours Float?
-  scoreRecord                  ScoreRecord? @relation(fields: [scoreRecordId], references: [id])
+  id                    Int          @id @default(autoincrement())
+  semesterNumber        Int
+  year                  String
+  courseCode            String
+  predictedScore        Float?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  scoreRecordId         Int?
+  mode                  String?
+  convertedNumericScore Float?
+  convertedScore        String?
+  creditsUnit           Int
+  scoreRecord           ScoreRecord? @relation(fields: [scoreRecordId], references: [id])
 }

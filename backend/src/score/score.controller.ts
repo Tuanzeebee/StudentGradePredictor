@@ -67,4 +67,58 @@ export class ScoreController {
   async getGPAStats(@CurrentUser() user: User) {
     return this.scoreService.getGPAStats(user.id);
   }
+
+  @Get('predicted-gpa-stats')
+  @UseGuards(JwtAuthGuard)
+  async getPredictedGPAStats(@CurrentUser() user: User) {
+    return this.scoreService.getPredictedGPAStats(user.id);
+  }
+
+  @Post('fill-missing-values')
+  @UseGuards(JwtAuthGuard)
+  async fillMissingValues(@CurrentUser() user: User) {
+    return this.scoreService.fillMissingValuesWithMedian(user.id);
+  }
+
+  @Get('analyze-data')
+  @UseGuards(JwtAuthGuard)
+  async analyzeDataAvailability(@CurrentUser() user: User) {
+    return this.scoreService.analyzeDataAvailability(user.id);
+  }
+
+  @Post('auto-predict')
+  @UseGuards(JwtAuthGuard)
+  async autoPredictMissingScores(@CurrentUser() user: User) {
+    return this.scoreService.autoPredictMissingScores(user.id);
+  }
+
+  @Get('prediction-status')
+  @UseGuards(JwtAuthGuard)
+  async checkPredictionStatus(@CurrentUser() user: User) {
+    return this.scoreService.checkPredictionStatus(user.id);
+  }
+
+  @Post('add-test-courses')
+  @UseGuards(JwtAuthGuard)
+  async addTestCoursesForPrediction(@CurrentUser() user: User) {
+    return this.scoreService.addTestCoursesForPrediction(user.id);
+  }
+
+  @Post('update-predicted-conversions')
+  @UseGuards(JwtAuthGuard)
+  async updatePredictedScoreConversions(@CurrentUser() user: User) {
+    return this.scoreService.updatePredictedScoreConversions(user.id);
+  }
+
+  @Post('update-actual-conversions')
+  @UseGuards(JwtAuthGuard)
+  async updateScoreRecordConversions(@CurrentUser() user: User) {
+    return this.scoreService.updateScoreRecordConversions(user.id);
+  }
+
+  @Post('update-all-conversions')
+  @UseGuards(JwtAuthGuard)
+  async updateAllScoreConversions(@CurrentUser() user: User) {
+    return this.scoreService.updateAllScoreConversions(user.id);
+  }
 }

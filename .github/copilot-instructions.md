@@ -165,13 +165,6 @@ export class CreateExampleDto {
   value?: number;
 }
 ```
-
-## Testing Guidelines
-- Use Jest for unit testing
-- Implement e2e tests for critical flows
-- Mock external services (ML API)
-- Test authentication flows thoroughly
-
 ## Performance Considerations
 - Use Prisma query optimization
 - Implement pagination for large datasets

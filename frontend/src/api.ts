@@ -43,4 +43,31 @@ export const getGPAStats = async () => {
   });
 };
 
+export const autoPredictMissingScores = async () => {
+  const token = localStorage.getItem('token');
+  return api.post('/scores/auto-predict', {}, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+export const fillMissingValues = async () => {
+  const token = localStorage.getItem('token');
+  return api.post('/scores/fill-missing-values', {}, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+export const checkPredictionStatus = async () => {
+  const token = localStorage.getItem('token');
+  return api.get('/scores/prediction-status', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
 export default api;

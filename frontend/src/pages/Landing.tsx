@@ -37,7 +37,7 @@ interface GPAStats {
   }>;
 }
 
-type InputMode = 'per-course' | 'by-semester' | 'apply-all';
+type InputMode = 'by-semester' | 'apply-all';
 
 interface GlobalValues {
   familySupport: number;
@@ -50,12 +50,11 @@ interface SemesterValues {
 }
 
 // FileUploadBox component with real upload functionality
-const FileUploadBox: React.FC = () => {
+const FileUploadBox: React.FC<{ setActiveTab: (tab: 'guide' | 'upload' | 'overview') => void }> = ({ setActiveTab }) => {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showChartButton, setShowChartButton] = useState(false);
-  const navigate = useNavigate();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -305,8 +304,7 @@ const FileUploadBox: React.FC = () => {
           
           {showChartButton && (
             <button
-              type="button"
-              onClick={() => navigate('/prediction-details')}
+              onClick={() => setActiveTab('overview')}
               style={{
                 padding: '12px 30px',
                 fontSize: '16px',
@@ -318,7 +316,7 @@ const FileUploadBox: React.FC = () => {
                 fontWeight: 'bold'
               }}
             >
-              Xem Biểu Đồ Điểm
+              Xem Tổng Quan
             </button>
           )}
         </div>
@@ -343,7 +341,7 @@ const ScorePredictionComponent: React.FC = () => {
   const [saving, setSaving] = useState<{ [index: number]: boolean }>({});
 
   // Input mode states
-  const [inputMode, setInputMode] = useState<InputMode>('per-course');
+  const [inputMode, setInputMode] = useState<InputMode>('by-semester');
   const [globalValues, setGlobalValues] = useState<GlobalValues>({
     familySupport: 1,
     commuteHours: 0,
@@ -674,7 +672,7 @@ const ScorePredictionComponent: React.FC = () => {
             <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#43a047' }}>
               {gpaStats.predictedGPA.toFixed(2)}
             </p>
-            <small style={{ color: '#666' }}>Toàn khóa</small>
+            <small style={{ color: '#666' }}>Toàn Kỳ</small>
           </div>
           <div style={{ textAlign: 'center' }}>
             <h4 style={{ margin: '0 0 8px 0', color: '#ff9800' }}>Tín chỉ</h4>
@@ -685,33 +683,6 @@ const ScorePredictionComponent: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Quick Navigation to Chart */}
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <button
-          onClick={() => navigate('/prediction-details')}
-          style={{
-            padding: '15px 40px',
-            fontSize: '18px',
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '10px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            transition: 'all 0.2s ease',
-            marginBottom: '10px'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
-        >
-          📊 Xem Biểu Đồ Chi Tiết
-        </button>
-        <p style={{ color: '#666', fontSize: '14px', margin: '0' }}>
-          Xem biểu đồ trực quan về tiến độ học tập và phân tích chi tiết
-        </p>
-      </div>
 
       {/* Mode Selector */}
       <div style={{ 
@@ -724,17 +695,6 @@ const ScorePredictionComponent: React.FC = () => {
       }}>
         <h3 style={{ marginBottom: '20px', color: '#333', textAlign: 'center' }}>🎯 Chế độ nhập liệu</h3>
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '10px 15px', backgroundColor: inputMode === 'per-course' ? '#e8f5e8' : '#f8f9fa', borderRadius: '8px', border: inputMode === 'per-course' ? '2px solid #4caf50' : '2px solid transparent' }}>
-            <input
-              type="radio"
-              name="inputMode"
-              value="per-course"
-              checked={inputMode === 'per-course'}
-              onChange={(e) => handleModeChange(e.target.value as InputMode)}
-              style={{ marginRight: '10px' }}
-            />
-            <span style={{ fontWeight: 'bold' }}>🟩 Từng môn học (chi tiết)</span>
-          </label>
           <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '10px 15px', backgroundColor: inputMode === 'by-semester' ? '#fff8e1' : '#f8f9fa', borderRadius: '8px', border: inputMode === 'by-semester' ? '2px solid #ffc107' : '2px solid transparent' }}>
             <input
               type="radio"
@@ -872,142 +832,32 @@ const ScorePredictionComponent: React.FC = () => {
           ))}
         </div>
       )}
-      
-      {/* Per-course input mode header */}
-      {inputMode === 'per-course' && (
-        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <h3 style={{ color: '#4caf50', marginBottom: '10px' }}>🟩 Nhập chi tiết từng môn học</h3>
-          <p style={{ color: '#666', fontSize: '14px' }}>Điều chỉnh thông tin cho từng môn học một cách chi tiết</p>
-        </div>
-      )}
-      
-      {/* Course Details */}
-      <div style={{ display: 'grid', gap: '20px' }}>
-        {scoreData.map((item, index) => (
-          <div key={index} style={{ 
-            background: '#fff', 
-            borderRadius: '12px', 
-            padding: '25px', 
-            boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-            border: saving[index] ? '2px solid #007bff' : '1px solid #e9ecef',
-            opacity: inputMode === 'per-course' ? 1 : 0.9,
-            transition: 'all 0.3s ease'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h4 style={{ margin: 0, color: '#333' }}>
-                📘 {item.courseCode} – {item.semester}
-              </h4>
-              {saving[index] && <span style={{ color: '#007bff', fontWeight: 'bold' }}>💾 Đang lưu...</span>}
-            </div>
-            
-            <div style={{ 
-              backgroundColor: '#f8f9fa', 
-              padding: '10px 15px', 
-              borderRadius: '6px', 
-              marginBottom: '20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <span style={{ fontWeight: 'bold' }}>Điểm thực tế:</span>
-              <span style={{ fontSize: '18px', color: '#1976d2', fontWeight: 'bold' }}>
-                {rawScores[index] ?? '—'}
-              </span>
-            </div>
-            
-            {inputMode === 'per-course' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '20px' }}>
-                <label style={{ fontWeight: 'bold' }}>
-                  Hỗ trợ gia đình:
-                  <select 
-                    value={supportValues[index] ?? 1} 
-                    onChange={(e) => handleSupportChange(index, parseInt(e.target.value))}
-                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', marginTop: '5px' }}
-                    disabled={saving[index]}
-                  >
-                    <option value={0}>Thấp</option>
-                    <option value={1}>Trung bình</option>
-                    <option value={2}>Cao</option>
-                    <option value={3}>Rất cao</option>
-                  </select>
-                </label>
-                
-                <label style={{ fontWeight: 'bold' }}>
-                  Thời Gian Đi Làm (giờ/tuần):
-                  <input
-                    type="number"
-                    min={0}
-                    max={40}
-                    value={commuteValues[index] ?? ''}
-                    onChange={(e) => handleCommuteChange(index, parseInt(e.target.value))}
-                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', marginTop: '5px' }}
-                    placeholder="0-40 giờ"
-                    disabled={saving[index]}
-                  />
-                </label>
 
-                <label style={{ fontWeight: 'bold' }}>
-                  Tỷ lệ chuyên cần (%):
-                  <input
-                    type="number"
-                    min={50}
-                    max={100}
-                    value={attendanceValues[index] ?? ''}
-                    onChange={(e) => handleAttendanceChange(index, parseInt(e.target.value))}
-                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', marginTop: '5px' }}
-                    placeholder="50-100%"
-                    disabled={saving[index]}
-                  />
-                </label>
-              </div>
-            )}
-
-            {inputMode !== 'per-course' && (
-              <div style={{ 
-                padding: '15px', 
-                backgroundColor: '#f8f9fa', 
-                borderRadius: '6px', 
-                color: '#666',
-                fontSize: '14px',
-                marginBottom: '15px'
-              }}>
-                📋 <strong>Giá trị đã áp dụng từ chế độ {inputMode === 'apply-all' ? 'toàn cục' : 'theo học kỳ'}:</strong>
-                <div style={{ marginTop: '8px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '5px' }}>
-                  <span>• Hỗ trợ gia đình: <strong>{supportValues[index] ?? '—'}</strong></span>
-                  <span>• Đi làm: <strong>{commuteValues[index] ?? '—'}</strong> giờ/tuần</span>
-                  <span>• Chuyên cần: <strong>{attendanceValues[index] ?? '—'}</strong>%</span>
-                </div>
-              </div>
-            )}
-            
-            {/* Results */}
-            <div style={{ display: 'grid', gap: '10px' }}>
-              {predictedScores[index] !== undefined && (
-                <div style={{ 
-                  padding: '15px', 
-                  backgroundColor: '#d4edda', 
-                  borderRadius: '8px', 
-                  color: '#155724',
-                  textAlign: 'center'
-                }}>
-                  🎯 <strong style={{ fontSize: '18px' }}>Điểm dự đoán: {predictedScores[index].toFixed(2)}</strong>
-                </div>
-              )}
-              
-              {inferredResults[index] && (
-                <div style={{ 
-                  padding: '15px', 
-                  backgroundColor: '#d1ecf1', 
-                  borderRadius: '8px', 
-                  color: '#0c5460',
-                  textAlign: 'center'
-                }}>
-                  ⏰ <strong>Thời gian học ước tính: {inferredResults[index].weeklyStudyHours.toFixed(1)} giờ/tuần</strong>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+      {/* Quick Navigation to Chart - Moved to bottom */}
+      <div style={{ textAlign: 'center', marginTop: '40px', marginBottom: '30px' }}>
+        <button
+          onClick={() => navigate('/prediction-details')}
+          style={{
+            padding: '15px 40px',
+            fontSize: '18px',
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            transition: 'all 0.2s ease',
+            marginBottom: '10px'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+        >
+          📊 Xem Biểu Đồ Chi Tiết
+        </button>
+        <p style={{ color: '#666', fontSize: '14px', margin: '0' }}>
+          Xem biểu đồ trực quan về tiến độ học tập và phân tích chi tiết
+        </p>
       </div>
     </div>
   );
@@ -1303,7 +1153,7 @@ function Landing() {
             Chào mừng bạn đến với ứng dụng dự đoán điểm số!
           </p>
           
-          <FileUploadBox />    
+          <FileUploadBox setActiveTab={setActiveTab} />    
         </div>
       )}
 

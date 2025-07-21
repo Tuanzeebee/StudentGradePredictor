@@ -34,7 +34,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getChartData, getGPAStats } from '../api';
+import { getChartData, getGPAStats, autoPredictMissingScores, fillMissingValues, checkPredictionStatus } from '../api';
 import {
   LineChart,
   Line,
@@ -89,10 +89,48 @@ const PredictionDetailsPage: React.FC = () => {
   const [scoreData, setScoreData] = useState<ScoreData[]>([]);
   const [gpaStats, setGpaStats] = useState<GPAStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAutoPredicting, setIsAutoPredicting] = useState(false);
+  const [predictionStatus, setPredictionStatus] = useState<any>(null);
 
   // Chart display states
   const [showGPA, setShowGPA] = useState(false);
   const [showGPAStats, setShowGPAStats] = useState(true);
+
+  const checkStatus = async () => {
+    try {
+      const statusResponse = await checkPredictionStatus();
+      setPredictionStatus(statusResponse.data);
+      console.log('📊 Prediction status:', statusResponse.data);
+    } catch (error) {
+      console.error('❌ Failed to check prediction status:', error);
+    }
+  };
+
+  const autoPredict = async () => {
+    try {
+      setIsAutoPredicting(true);
+      console.log('🤖 Bắt đầu auto predict...');
+      
+      // Bước 1: Check status trước khi predict
+      await checkStatus();
+      
+      // Bước 2: Fill missing values với median (đã được gọi trong autoPredictMissingScores)
+      console.log('🎯 Tự động dự đoán điểm...');
+      const predictResult = await autoPredictMissingScores();
+      console.log('✅ Auto predict result:', predictResult.data);
+      
+      // Bước 3: Check status sau khi predict
+      await checkStatus();
+      
+      // Bước 4: Refresh data để hiển thị kết quả mới
+      await fetchData();
+      
+    } catch (error) {
+      console.error('❌ Auto predict failed:', error);
+    } finally {
+      setIsAutoPredicting(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -132,7 +170,16 @@ const PredictionDetailsPage: React.FC = () => {
       return;
     }
 
-    fetchData();
+    const initializeData = async () => {
+      await fetchData();
+      await checkStatus();
+      
+      // Tự động chạy prediction sau khi load data và check status
+      console.log('🚀 Tự động chạy prediction cho các môn chưa có điểm...');
+      await autoPredict();
+    };
+
+    initializeData();
   }, [navigate]);
 
   // Chart rendering function
@@ -168,6 +215,40 @@ const PredictionDetailsPage: React.FC = () => {
             />
             <span>Hiển thị thống kê GPA</span>
           </label>
+
+          <button
+            onClick={autoPredict}
+            disabled={isAutoPredicting}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: isAutoPredicting ? '#ccc' : '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: isAutoPredicting ? 'not-allowed' : 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            {isAutoPredicting ? '🤖 Đang dự đoán...' : '🎯 Tự động dự đoán điểm'}
+          </button>
+
+          {predictionStatus && (
+            <div style={{
+              padding: '8px 12px',
+              backgroundColor: '#e3f2fd',
+              border: '1px solid #1976d2',
+              borderRadius: '6px',
+              fontSize: '12px',
+              color: '#1976d2'
+            }}>
+              📊 {predictionStatus.summary.withPrediction}/{predictionStatus.summary.totalRecords} môn có dự đoán
+              {predictionStatus.summary.readyButNotPredicted?.length > 0 && (
+                <span style={{ color: '#f57c00', marginLeft: '8px' }}>
+                  | {predictionStatus.summary.readyButNotPredicted.length} môn sẵn sàng predict
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {gpaStats && showGPAStats && (
@@ -237,7 +318,14 @@ const PredictionDetailsPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Đang tải dữ liệu...</div>
+        <div className="text-center">
+          <div className="text-lg mb-4">Đang tải dữ liệu...</div>
+          {isAutoPredicting && (
+            <div className="text-sm text-blue-600">
+              🤖 Đang tự động dự đoán điểm cho các môn chưa có điểm...
+            </div>
+          )}
+        </div>
       </div>
     );
   }

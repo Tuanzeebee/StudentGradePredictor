@@ -65,7 +65,7 @@ async function main() {
         attendancePercentage: r.attendancePercentage,
         partTimeHours:        r.partTimeHours,
         familySupport:        r.familySupport,
-        // 👉 interaction cols
+        //interaction cols
         studyHoursXAttendance:        sxa,
         studyHoursXPartPartTimeHours: sxp,
         familySupportXPartTimeHours:  fxp,
@@ -77,15 +77,11 @@ async function main() {
               semesterNumber:             r.semesterNumber,
               year:                       r.year,
               courseCode:                 r.courseCode,
+              creditsUnit:                r.creditsUnit,
               // giữ chỗ predictedScore = null (tính sau)
               predictedScore:             null,
-              predictedWeeklyStudyHours:  null,
-              // interaction cols copy để truy vết
-              studyHoursXAttendance:        sxa,
-              studyHoursXPartPartTimeHours: sxp,
-              familySupportXPartTimeHours:  fxp,
-              attendanceXSupport:           axs,
-              fullInteractionFeature:       full,
+              convertedNumericScore:      null,
+              convertedScore:             null,
               mode: 'SEED',
             },
           ],

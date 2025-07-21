@@ -1,6 +1,0 @@
-student_id,year,semester_number,course_code,study_format,credits_unit,raw_score,current_semester_gpa,cumulative_gpa,previous_courses_taken,previous_credits_earned,weekly_study_hours,attendance_percentage,part_time_hours,family_support
-28211280315,2023-2024,1,CS301,LEC,3,,7.88,3.38,0,0,10,90,5,8
-28211280315,2023-2024,1,CS302,LEC,3,8.5,7.88,3.38,0,0,12,85,,7
-28211280315,2023-2024,1,CS303,LAB,1,,7.88,3.38,0,0,,80,4,9
-28211280315,2023-2024,2,CS401,LEC,4,7.8,8.2,3.5,5,15,15,95,3,8
-28211280315,2023-2024,2,CS402,LEC,3,,8.2,3.5,5,15,,88,5,
