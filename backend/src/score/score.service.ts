@@ -1756,4 +1756,104 @@ export class ScoreService {
       }
     };
   }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // GET LEARNING PATH DATA FOR A SPECIFIC COURSE
+  // ────────────────────────────────────────────────────────────────────────────
+  async getLearningPath(courseCode: string, userId: number) {
+    try {
+      // Get the specific course data (both actual and predicted)
+      const scoreRecord = await this.prisma.scoreRecord.findFirst({
+        where: { 
+          userId, 
+          courseCode 
+        },
+        include: {
+          predictedScores: true
+        }
+      });
+
+      const predictedScore = await this.prisma.predictedScore.findFirst({
+        where: { 
+          courseCode,
+          scoreRecord: { userId }
+        }
+      });
+
+      if (!scoreRecord && !predictedScore) {
+        throw new Error(`Course ${courseCode} not found for user ${userId}`);
+      }
+
+      // Calculate user's average study patterns from all completed courses
+      const completedCourses = await this.prisma.scoreRecord.findMany({
+        where: { 
+          userId,
+          rawScore: { not: null }
+        }
+      });
+
+      // Calculate averages from user's historical data
+      const totalCourses = completedCourses.length;
+      const avgWeeklyStudyHours = totalCourses > 0 
+        ? completedCourses.reduce((sum, record) => sum + (record.weeklyStudyHours || 0), 0) / totalCourses 
+        : 8; // Default fallback
+
+      const avgAttendancePercentage = totalCourses > 0
+        ? completedCourses.reduce((sum, record) => sum + (record.attendancePercentage || 0), 0) / totalCourses
+        : 85; // Default fallback
+
+      const avgCommuteTime = totalCourses > 0
+        ? completedCourses.reduce((sum, record) => sum + (record.commuteTimeMinutes || 0), 0) / totalCourses
+        : 30; // Default fallback
+
+      // Get credit units for the course
+      const creditUnits = scoreRecord?.creditsUnit || predictedScore?.creditsUnit || 3;
+      
+      // Calculate recommended study hours based on credits (general rule: 2-3 hours per credit per week)
+      const recommendedWeeklyHours = creditUnits * 2.5;
+      const semesterWeeks = 15; // Typical semester length
+      const recommendedTotalHours = recommendedWeeklyHours * semesterWeeks;
+
+      // Get predicted score
+      const finalPredictedScore = predictedScore?.predictedScore || scoreRecord?.predictedScores?.[0]?.predictedScore || 0;
+
+      return {
+        courseCode,
+        courseName: `${courseCode}: Introduction to Programming`, // You can enhance this with a course name mapping
+        creditUnits,
+        predictedScore: finalPredictedScore,
+        currentStatus: {
+          weeklyStudyTime: Math.round(avgWeeklyStudyHours * 10) / 10,
+          attendancePercentage: Math.round(avgAttendancePercentage * 10) / 10,
+          commuteTimeMinutes: Math.round(avgCommuteTime * 10) / 10,
+          recommendedTotalHours: Math.round(recommendedTotalHours),
+          currentTotalHours: Math.round(avgWeeklyStudyHours * semesterWeeks),
+        },
+        recommendations: {
+          onTrack: finalPredictedScore >= 7.0,
+          message: finalPredictedScore >= 7.0 
+            ? "Your current study plan should help you achieve your predicted score. Stay consistent!"
+            : "Consider increasing study time and attendance to improve your predicted score.",
+          suggestedWeeklyHours: finalPredictedScore < 7.0 
+            ? Math.ceil(recommendedWeeklyHours * 1.2) // Increase by 20% if below target
+            : recommendedWeeklyHours
+        },
+        userProfile: {
+          totalCompletedCourses: totalCourses,
+          averagePerformance: totalCourses > 0 
+            ? Math.round((completedCourses.reduce((sum, record) => sum + (record.rawScore || 0), 0) / totalCourses) * 10) / 10
+            : 0,
+          studyPatterns: {
+            avgWeeklyStudyHours,
+            avgAttendancePercentage,
+            avgCommuteTime
+          }
+        }
+      };
+      
+    } catch (error) {
+      console.error('Error in getLearningPath:', error);
+      throw new Error(`Failed to get learning path for course ${courseCode}: ${error.message}`);
+    }
+  }
 }

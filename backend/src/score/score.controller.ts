@@ -121,4 +121,13 @@ export class ScoreController {
   async updateAllScoreConversions(@CurrentUser() user: User) {
     return this.scoreService.updateAllScoreConversions(user.id);
   }
+
+  @Get('learning-path/:courseCode')
+  @UseGuards(JwtAuthGuard)
+  async getLearningPath(
+    @Param('courseCode') courseCode: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.scoreService.getLearningPath(courseCode, user.id);
+  }
 }

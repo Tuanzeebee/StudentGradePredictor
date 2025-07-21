@@ -5,6 +5,9 @@ import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import ScoreChartPage from "./pages/ScoreChartPage";
 import PredictionDetailsPage from "./pages/PredictionDetailsPage";
+import Learningpath from "./pages/Learningpath";
+import CourseDetailPage from "./pages/CourseDetailPage";
+import Studywithme from "./pages/Studywithme";
 
 function App() {
   return (
@@ -13,8 +16,11 @@ function App() {
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/register" element={<Register />} />
         <Route path="/landing" element={<Landing />} />
+        <Route path="/learning-path" element={<Learningpath />} />
+        <Route path="/course-detail" element={<CourseDetailPage />} />
         <Route path="/score-chart" element={<ScoreChartPage />} />
         <Route path="/prediction-details" element={<PredictionDetailsPage />} />
+        <Route path="/study-with-me" element={<Studywithme />} />
         <Route path="/" element={<Home />} />
       </Routes>
     </BrowserRouter>

@@ -18,24 +18,47 @@ interface PredictionChartProps {
 }
 
 const PredictionChart: React.FC<PredictionChartProps> = ({ scoreData }) => {
-  // Calculate average scores
-  const actualScores = scoreData.filter(item => item.actual !== undefined);
-  const predictedScores = scoreData.filter(item => item.predicted !== undefined);
+  // Filter out ES (English Skills) courses to match backend logic
+  const filteredScoreData = scoreData.filter(item => !item.courseCode.startsWith('ES'));
+  
+  // Calculate average scores (excluding ES courses)
+  const actualScores = filteredScoreData.filter(item => item.actual !== undefined && item.actual !== null);
+  const predictedScores = filteredScoreData.filter(item => item.predicted !== undefined && item.predicted !== null);
   
   const avgActualScore = actualScores.length > 0 
     ? actualScores.reduce((sum, item) => sum + (item.actual || 0), 0) / actualScores.length 
     : 0;
     
-  const avgPredictedScore = predictedScores.length > 0 
-    ? predictedScores.reduce((sum, item) => sum + (item.predicted || 0), 0) / predictedScores.length 
+  // For predicted average: include both actual scores (for completed courses) and predicted scores (for future courses)
+  const allAvailableScores = filteredScoreData.filter(item => 
+    (item.actual !== undefined && item.actual !== null) || 
+    (item.predicted !== undefined && item.predicted !== null)
+  );
+  
+  const avgPredictedScore = allAvailableScores.length > 0 
+    ? allAvailableScores.reduce((sum, item) => {
+        // Use actual score if available, otherwise use predicted score
+        const score = item.actual !== undefined && item.actual !== null ? item.actual : (item.predicted || 0);
+        return sum + score;
+      }, 0) / allAvailableScores.length
     : 0;
 
-  // Calculate progress statistics
-  const totalCourses = scoreData.length;
+  // Calculate progress statistics (excluding ES courses)
+  const totalCourses = filteredScoreData.length;
   const coursesWithActualScores = actualScores.length;
   const coursesWithPredictions = predictedScores.length;
+  const coursesWithAnyScore = allAvailableScores.length; // Either actual or predicted
   const completionRate = totalCourses > 0 ? (coursesWithActualScores / totalCourses) * 100 : 0;
-  const predictionRate = totalCourses > 0 ? (coursesWithPredictions / totalCourses) * 100 : 0;
+  const predictionRate = totalCourses > 0 ? (coursesWithAnyScore / totalCourses) * 100 : 0;
+  
+  // Debug log
+  console.log('PredictionChart Debug:', {
+    totalCourses,
+    coursesWithActualScores,
+    coursesWithPredictions,
+    coursesWithAnyScore,
+    filteredScoreDataLength: filteredScoreData.length
+  });
 
   return (
     <div style={{
@@ -51,7 +74,7 @@ const PredictionChart: React.FC<PredictionChartProps> = ({ scoreData }) => {
         fontSize: '24px',
         fontWeight: 'bold'
       }}>
-        Biểu đồ dự đoán theo tất cả môn học
+        Biểu đồ dự đoán theo tất cả môn học 
       </h3>
       
       {/* Summary Statistics */}
@@ -78,7 +101,7 @@ const PredictionChart: React.FC<PredictionChartProps> = ({ scoreData }) => {
             {avgActualScore > 0 ? avgActualScore.toFixed(2) : 'N/A'}
           </p>
           <small style={{ color: '#0c4a6e' }}>
-            Từ {coursesWithActualScores}/{totalCourses} môn học
+            Từ {coursesWithActualScores}/{totalCourses} môn đã có điểm
           </small>
         </div>
 
@@ -99,7 +122,7 @@ const PredictionChart: React.FC<PredictionChartProps> = ({ scoreData }) => {
             {avgPredictedScore > 0 ? avgPredictedScore.toFixed(2) : 'N/A'}
           </p>
           <small style={{ color: '#14532d' }}>
-            Từ {coursesWithPredictions}/{totalCourses} dự đoán
+            Từ {coursesWithAnyScore}/{totalCourses} môn (thực tế + dự đoán)
           </small>
         </div>
 
@@ -166,9 +189,9 @@ const PredictionChart: React.FC<PredictionChartProps> = ({ scoreData }) => {
             justifyContent: 'space-between', 
             marginBottom: '5px' 
           }}>
-            <span style={{ fontSize: '14px', color: '#6b7280' }}>Môn học có dự đoán</span>
+            <span style={{ fontSize: '14px', color: '#6b7280' }}>Môn học có dữ liệu (thực tế + dự đoán)</span>
             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>
-              {coursesWithPredictions}/{totalCourses} ({predictionRate.toFixed(1)}%)
+              {coursesWithAnyScore}/{totalCourses} ({predictionRate.toFixed(1)}%)
             </span>
           </div>
           <div style={{

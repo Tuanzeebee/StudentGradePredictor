@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 interface ScoreData {
   courseCode: string;
@@ -18,29 +19,10 @@ interface SubjectTableProps {
 }
 
 const SubjectTable: React.FC<SubjectTableProps> = ({ scoreData }) => {
-  const getTrend = (actual?: number, predicted?: number) => {
-    if (!actual || !predicted) return '→';
-    const diff = predicted - actual;
-    if (Math.abs(diff) < 0.1) return '→';
-    if (diff > 0) return '↑';
-    return '↓';
-  };
-
-  const getTrendColor = (actual?: number, predicted?: number) => {
-    if (!actual || !predicted) return '#6b7280';
-    const diff = predicted - actual;
-    if (Math.abs(diff) < 0.1) return '#6b7280';
-    if (diff > 0) return '#10b981';
-    return '#ef4444';
-  };
-
-  const getTrendDescription = (actual?: number, predicted?: number) => {
-    if (!actual || !predicted) return 'Chưa có dữ liệu';
-    const diff = predicted - actual;
-    if (Math.abs(diff) < 0.1) return 'Ổn định';
-    if (diff > 0) return `Tăng ${diff.toFixed(1)} điểm`;
-    return `Giảm ${Math.abs(diff).toFixed(1)} điểm`;
-  };
+  const navigate = useNavigate();
+  
+  // Chỉ hiển thị các môn học chưa có điểm thực tế (actual = null hoặc undefined)
+  const filteredScoreData = scoreData.filter(item => !item.actual);
 
   return (
     <div style={{
@@ -49,11 +31,16 @@ const SubjectTable: React.FC<SubjectTableProps> = ({ scoreData }) => {
       borderRadius: '10px',
       marginTop: '20px'
     }}>
-      <h3 style={{ marginBottom: '20px', color: '#3C315B' }}>Chi tiết các môn học</h3>
+      <h3 style={{ marginBottom: '20px', color: '#3C315B' }}>
+        Chi tiết các môn học chưa có điểm thực tế ({filteredScoreData.length} môn)
+      </h3>
       
-      {scoreData.length === 0 ? (
+      {filteredScoreData.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-          <p>Chưa có dữ liệu môn học</p>
+          <p>Tất cả các môn học đã có điểm thực tế</p>
+          <p style={{ fontSize: '14px', marginTop: '10px' }}>
+            Không có môn học nào cần dự đoán điểm
+          </p>
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -77,18 +64,15 @@ const SubjectTable: React.FC<SubjectTableProps> = ({ scoreData }) => {
                   Tín chỉ
                 </th>
                 <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
-                  Điểm thực tế
-                </th>
-                <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
                   Điểm dự đoán
                 </th>
                 <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
-                  Xu hướng
+                  Hành động
                 </th>
               </tr>
             </thead>
             <tbody>
-              {scoreData.map((item, index) => (
+              {filteredScoreData.map((item, index) => (
                 <tr key={index} style={{ 
                   borderBottom: '1px solid #f3f4f6',
                   transition: 'background-color 0.2s',
@@ -112,22 +96,6 @@ const SubjectTable: React.FC<SubjectTableProps> = ({ scoreData }) => {
                     </span>
                   </td>
                   <td style={{ padding: '15px', textAlign: 'center' }}>
-                    {item.actual ? (
-                      <span style={{
-                        backgroundColor: '#dbeafe',
-                        color: '#1e40af',
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        fontWeight: 'bold',
-                        fontSize: '14px'
-                      }}>
-                        {item.actual.toFixed(1)}
-                      </span>
-                    ) : (
-                      <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
-                    )}
-                  </td>
-                  <td style={{ padding: '15px', textAlign: 'center' }}>
                     {item.predicted ? (
                       <span style={{
                         backgroundColor: '#dcfce7',
@@ -140,26 +108,38 @@ const SubjectTable: React.FC<SubjectTableProps> = ({ scoreData }) => {
                         {item.predicted.toFixed(1)}
                       </span>
                     ) : (
-                      <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>N/A</span>
+                      <span style={{ color: '#ef4444', fontStyle: 'italic' }}>Chưa dự đoán</span>
                     )}
                   </td>
                   <td style={{ padding: '15px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                      <span style={{
-                        fontSize: '24px',
-                        color: getTrendColor(item.actual, item.predicted),
-                        fontWeight: 'bold'
+                    {item.predicted ? (
+                      <button
+                        style={{
+                          backgroundColor: '#0891b2',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '6px 16px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0e7490'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#0891b2'}
+                        onClick={() => navigate(`/learning-path?courseCode=${item.courseCode}&predictedScore=${item.predicted || item.predictedGPA || 0}`)}
+                      >
+                        Learn
+                      </button>
+                    ) : (
+                      <span style={{ 
+                        color: '#9ca3af', 
+                        fontStyle: 'italic',
+                        fontSize: '12px'
                       }}>
-                        {getTrend(item.actual, item.predicted)}
+                        Chưa có dự đoán
                       </span>
-                      <span style={{
-                        fontSize: '12px',
-                        color: getTrendColor(item.actual, item.predicted),
-                        fontWeight: 'medium'
-                      }}>
-                        {getTrendDescription(item.actual, item.predicted)}
-                      </span>
-                    </div>
+                    )}
                   </td>
                 </tr>
               ))}

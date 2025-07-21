@@ -70,4 +70,13 @@ export const checkPredictionStatus = async () => {
   });
 };
 
+export const getLearningPath = async (courseCode: string) => {
+  const token = localStorage.getItem('token');
+  return api.get(`/scores/learning-path/${courseCode}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
 export default api;

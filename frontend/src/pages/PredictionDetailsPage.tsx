@@ -34,7 +34,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getChartData, getGPAStats, autoPredictMissingScores, fillMissingValues, checkPredictionStatus } from '../api';
+import { getChartData, getGPAStats } from '../api';
 import {
   LineChart,
   Line,
@@ -89,48 +89,10 @@ const PredictionDetailsPage: React.FC = () => {
   const [scoreData, setScoreData] = useState<ScoreData[]>([]);
   const [gpaStats, setGpaStats] = useState<GPAStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAutoPredicting, setIsAutoPredicting] = useState(false);
-  const [predictionStatus, setPredictionStatus] = useState<any>(null);
 
   // Chart display states
   const [showGPA, setShowGPA] = useState(false);
   const [showGPAStats, setShowGPAStats] = useState(true);
-
-  const checkStatus = async () => {
-    try {
-      const statusResponse = await checkPredictionStatus();
-      setPredictionStatus(statusResponse.data);
-      console.log('📊 Prediction status:', statusResponse.data);
-    } catch (error) {
-      console.error('❌ Failed to check prediction status:', error);
-    }
-  };
-
-  const autoPredict = async () => {
-    try {
-      setIsAutoPredicting(true);
-      console.log('🤖 Bắt đầu auto predict...');
-      
-      // Bước 1: Check status trước khi predict
-      await checkStatus();
-      
-      // Bước 2: Fill missing values với median (đã được gọi trong autoPredictMissingScores)
-      console.log('🎯 Tự động dự đoán điểm...');
-      const predictResult = await autoPredictMissingScores();
-      console.log('✅ Auto predict result:', predictResult.data);
-      
-      // Bước 3: Check status sau khi predict
-      await checkStatus();
-      
-      // Bước 4: Refresh data để hiển thị kết quả mới
-      await fetchData();
-      
-    } catch (error) {
-      console.error('❌ Auto predict failed:', error);
-    } finally {
-      setIsAutoPredicting(false);
-    }
-  };
 
   const fetchData = async () => {
     try {
@@ -170,23 +132,17 @@ const PredictionDetailsPage: React.FC = () => {
       return;
     }
 
-    const initializeData = async () => {
-      await fetchData();
-      await checkStatus();
-      
-      // Tự động chạy prediction sau khi load data và check status
-      console.log('🚀 Tự động chạy prediction cho các môn chưa có điểm...');
-      await autoPredict();
-    };
-
-    initializeData();
+    fetchData();
   }, [navigate]);
 
   // Chart rendering function
   const renderChart = () => {
     if (!scoreData.length) return null;
 
-    const chartData = scoreData.map((item) => ({
+    // Filter out ES (English Skills) courses to match backend logic
+    const filteredData = scoreData.filter(item => !item.courseCode.startsWith('ES'));
+
+    const chartData = filteredData.map((item) => ({
       name: item.courseCode,
       semester: item.semester,
       actual: showGPA ? item.actualGPA : item.actual,
@@ -215,72 +171,56 @@ const PredictionDetailsPage: React.FC = () => {
             />
             <span>Hiển thị thống kê GPA</span>
           </label>
-
-          <button
-            onClick={autoPredict}
-            disabled={isAutoPredicting}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: isAutoPredicting ? '#ccc' : '#10b981',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: isAutoPredicting ? 'not-allowed' : 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            {isAutoPredicting ? '🤖 Đang dự đoán...' : '🎯 Tự động dự đoán điểm'}
-          </button>
-
-          {predictionStatus && (
-            <div style={{
-              padding: '8px 12px',
-              backgroundColor: '#e3f2fd',
-              border: '1px solid #1976d2',
-              borderRadius: '6px',
-              fontSize: '12px',
-              color: '#1976d2'
-            }}>
-              📊 {predictionStatus.summary.withPrediction}/{predictionStatus.summary.totalRecords} môn có dự đoán
-              {predictionStatus.summary.readyButNotPredicted?.length > 0 && (
-                <span style={{ color: '#f57c00', marginLeft: '8px' }}>
-                  | {predictionStatus.summary.readyButNotPredicted.length} môn sẵn sàng predict
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
         {gpaStats && showGPAStats && (
           <div style={{ 
             backgroundColor: '#f8f9fa', 
-            padding: '15px', 
-            borderRadius: '8px', 
+            padding: '20px', 
+            borderRadius: '12px', 
             marginBottom: '20px',
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '15px'
+            gap: '20px',
+            border: '1px solid #e9ecef'
           }}>
             <div style={{ textAlign: 'center' }}>
-              <h4 style={{ margin: '0 0 5px 0', color: '#1976d2' }}>GPA Hiện tại</h4>
-              <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#1976d2' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#1976d2' }}>Điểm trung bình hiện tại</h4>
+              <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#1976d2' }}>
                 {gpaStats.cumulativeGPA.toFixed(2)}
               </p>
-              <small style={{ color: '#666' }}>{gpaStats.completedCourses}/{gpaStats.totalCourses} môn</small>
+              <small style={{ color: '#666' }}>{gpaStats.completedCourses}/{gpaStats.totalCourses} môn đã có điểm</small>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <h4 style={{ margin: '0 0 5px 0', color: '#43a047' }}>GPA Dự đoán</h4>
-              <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#43a047' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#43a047' }}>Điểm dự đoán trung bình</h4>
+              <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#43a047' }}>
                 {gpaStats.predictedGPA.toFixed(2)}
               </p>
-              <small style={{ color: '#666' }}>Toàn khóa</small>
+              <small style={{ color: '#666' }}>Toàn Kỳ</small>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <h4 style={{ margin: '0 0 5px 0', color: '#ff9800' }}>Tín chỉ</h4>
-              <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#ff9800' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#ff9800' }}>Tín chỉ</h4>
+              <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#ff9800' }}>
                 {gpaStats.totalCompletedCredits}/{gpaStats.totalCredits}
               </p>
               <small style={{ color: '#666' }}>Hoàn thành/Tổng</small>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: gpaStats.predictedGPA > gpaStats.cumulativeGPA ? '#10b981' : '#ef4444' }}>
+                Cải thiện dự kiến
+              </h4>
+              <p style={{ 
+                margin: 0, 
+                fontSize: '28px', 
+                fontWeight: 'bold', 
+                color: gpaStats.predictedGPA > gpaStats.cumulativeGPA ? '#10b981' : '#ef4444' 
+              }}>
+                {gpaStats.predictedGPA > gpaStats.cumulativeGPA ? '+' : ''}
+                {(gpaStats.predictedGPA - gpaStats.cumulativeGPA).toFixed(2)}
+              </p>
+              <small style={{ color: '#666' }}>
+                {gpaStats.predictedGPA > gpaStats.cumulativeGPA ? 'Tăng' : gpaStats.predictedGPA < gpaStats.cumulativeGPA ? 'Giảm' : 'Ổn định'}
+              </small>
             </div>
           </div>
         )}
@@ -320,11 +260,6 @@ const PredictionDetailsPage: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="text-lg mb-4">Đang tải dữ liệu...</div>
-          {isAutoPredicting && (
-            <div className="text-sm text-blue-600">
-              🤖 Đang tự động dự đoán điểm cho các môn chưa có điểm...
-            </div>
-          )}
         </div>
       </div>
     );
