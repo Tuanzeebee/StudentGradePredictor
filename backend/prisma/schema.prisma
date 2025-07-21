@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int           @id @default(autoincrement())
+  email     String        @unique
+  name      String
+  createdAt DateTime      @default(now())
+  password  String
+  posts     Post[]
+  scores    ScoreRecord[]
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?
+  published Boolean? @default(false)
+  authorId  Int?
+  author    User?    @relation(fields: [authorId], references: [id])
+}
+
+model ScoreRecord {
+  id                           Int              @id @default(autoincrement())
+  userId                       Int
+  semesterNumber               Int
+  year                         String
+  courseCode                   String
+  studyFormat                  String
+  creditsUnit                  Int
+  rawScore                     Float?
+  currentSemesterGpa           Float?
+  cumulativeGpa                Float?
+  previousCoursesTaken         Int              @default(0)
+  previousCreditsEarned        Int              @default(0)
+  weeklyStudyHours             Float?
+  attendancePercentage         Float?
+  commuteTimeMinutes           Float?
+  familySupport                Float?
+  studyHoursXAttendance        Float?
+  attendanceXSupport           Float?
+  fullInteractionFeature       Float?
+  createdAt                    DateTime         @default(now())
+  updatedAt                    DateTime         @updatedAt
+  familySupportXPartTimeHours  Float?
+  partTimeHours                Float?
+  studyHoursXPartPartTimeHours Float?
+  predictedScores              PredictedScore[]
+  user                         User             @relation(fields: [userId], references: [id])
+
+  @@unique([userId, courseCode, semesterNumber, year, studyFormat])
+}
+
+model PredictedScore {
+  id                           Int          @id @default(autoincrement())
+  semesterNumber               Int
+  year                         String
+  courseCode                   String
+  studyHoursXAttendance        Float?
+  attendanceXSupport           Float?
+  fullInteractionFeature       Float?
+  predictedScore               Float?
+  createdAt                    DateTime     @default(now())
+  updatedAt                    DateTime     @updatedAt
+  scoreRecordId                Int?
+  mode                         String?
+  predictedAttendancePercent   Float?
+  predictedWeeklyStudyHours    Float?
+  familySupportXPartTimeHours  Float?
+  studyHoursXPartPartTimeHours Float?
+  scoreRecord                  ScoreRecord? @relation(fields: [scoreRecordId], references: [id])
+}
