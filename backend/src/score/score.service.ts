@@ -64,6 +64,66 @@ const SUBJECT_TYPE_MAP: Record<string, 'major' | 'general'> = {
     'IS 385': 'general',
 };
 
+// Course name mapping for common courses
+const COURSE_NAME_MAP: Record<string, string> = {
+    'CMU-SE 100': 'Nhập môn Kỹ thuật phần mềm',
+    'CS 201': 'Cấu trúc dữ liệu',
+    'CS 211': 'Lập trình hướng đối tượng',
+    'DTE-IS 102': 'Hệ thống thông tin',
+    'IS-ENG 136': 'Tiếng Anh chuyên ngành IS',
+    'CHE 101': 'Hóa học đại cương',
+    'CMU-CS 252': 'Cơ sở dữ liệu',
+    'CMU-CS 311': 'Mạng máy tính',
+    'DTE-IS 152': 'Phân tích thiết kế hệ thống',
+    'IS-ENG 137': 'Tiếng Anh IS nâng cao',
+    'IS-ENG 186': 'Tiếng Anh dự án IS',
+    'MTH 103': 'Toán cao cấp A1',
+    'COM 141': 'Tin học văn phòng',
+    'PHY 101': 'Vật lý đại cương',
+    'CMU-CS 303': 'Thuật toán',
+    'CMU-SE 214': 'Kiến trúc phần mềm',
+    'HIS 222': 'Lịch sử Đảng Cộng sản Việt Nam',
+    'IS-ENG 187': 'Tiếng Anh IS ứng dụng',
+    'IS-ENG 236': 'Tiếng Anh IS chuyên sâu',
+    'MTH 104': 'Toán cao cấp A2',
+    'PHI 100': 'Triết học Mác-Lênin',
+    'CMU-CS 246': 'Lập trình Web',
+    'CMU-CS 297': 'Trí tuệ nhân tạo',
+    'CMU-CS 316': 'Kỹ thuật phần mềm',
+    'CMU-ENG 130': 'Tiếng Anh chuyên ngành CNTT',
+    'COM 142': 'Ứng dụng tin học',
+    'EVR 205': 'Môi trường và phát triển bền vững',
+    'MTH 254': 'Xác suất thống kê',
+    'STA 151': 'Thống kê ứng dụng',
+    'CMU-IS 432': 'Quản lý dự án IS',
+    'CMU-SE 252': 'Kiểm thử phần mềm',
+    'CMU-SE 303': 'Phát triển phần mềm Agile',
+    'IS 301': 'Hệ thống thông tin doanh nghiệp',
+    'MTH 291': 'Toán rời rạc',
+    'PHI 150': 'Tư tưởng Hồ Chí Minh',
+    'CMU-CS 445': 'Học máy',
+    'CMU-CS 447': 'Xử lý ngôn ngữ tự nhiên',
+    'CMU-CS 462': 'Thị giác máy tính',
+    'CMU-ENG 230': 'Tiếng Anh kỹ thuật',
+    'CS 464': 'Khai phá dữ liệu',
+    'MTH 203': 'Đại số tuyến tính',
+    'MTH 204': 'Giải tích',
+    'MTH 341': 'Phương pháp tối ưu',
+    'CMU-IS 401': 'Phân tích dữ liệu doanh nghiệp',
+    'CS 466': 'Hệ thống phân tán',
+    'LAW 201': 'Pháp luật đại cương',
+    'POS 151': 'Kinh tế chính trị Mác-Lênin',
+    'POS 361': 'Chủ nghĩa xã hội khoa học',
+    'HIS 221': 'Lịch sử Việt Nam',
+    'CMU-SE 450': 'Đồ án tốt nghiệp',
+    'CMU-SE 403': 'Thực tập doanh nghiệp',
+    'CMU-SE 451': 'Seminar tốt nghiệp',
+    'CMU-SE 433': 'Phát triển ứng dụng di động',
+    'POS 351': 'Tư tưởng chính trị',
+    'HIS 362': 'Lịch sử văn minh thế giới',
+    'IS 385': 'An toàn thông tin',
+};
+
 @Injectable()
 export class ScoreService {
   constructor(private readonly prisma: PrismaService) {}
@@ -85,6 +145,7 @@ export class ScoreService {
       const semesterNumber       = +row.semester_number || 1;
       const year                 = row.year || '2023-2024';
       const courseCode           = row.course_code;
+      const courseName           = row.course_name || COURSE_NAME_MAP[row.course_code] || row.course_code; // Lấy courseName từ CSV, mapping, hoặc dùng courseCode
       const studyFormat          = row.study_format || 'LEC';
       const creditsUnit          = +row.credits_unit || 3;
 
@@ -158,6 +219,7 @@ export class ScoreService {
         semesterNumber,
         year,
         courseCode,
+        courseName,
         studyFormat,
         creditsUnit,
         rawScore: isNaN(rawScore) ? null : rawScore,
@@ -215,6 +277,7 @@ export class ScoreService {
           semesterNumber: r.semesterNumber,
           year: r.year,
           courseCode: r.courseCode,
+          courseName: r.courseName,
           studyFormat: r.studyFormat,
           creditsUnit: r.creditsUnit,
           rawScore: r.rawScore,
@@ -276,6 +339,7 @@ export class ScoreService {
           semesterNumber: r.semesterNumber,
           year: r.year,
           courseCode: r.courseCode,
+          courseName: r.courseName,
           creditsUnit: r.creditsUnit,
           predictedScore: predictedScoreValue, // null nếu không predict được
           convertedNumericScore: predictedScoreValue ? this.convertRawScoreToGPA(predictedScoreValue) : null,
@@ -396,6 +460,7 @@ export class ScoreService {
               semesterNumber: record.semesterNumber,
               year: record.year,
               courseCode: record.courseCode,
+              courseName: record.courseName || COURSE_NAME_MAP[record.courseCode] || record.courseCode,
               creditsUnit: record.creditsUnit,
               predictedScore: data.predicted_score,
               convertedNumericScore: this.convertRawScoreToGPA(data.predicted_score),
@@ -531,6 +596,9 @@ export class ScoreService {
 
     const chartData = records.map((record) => ({
       courseCode: record.courseCode,
+      courseName: record.courseName ? 
+        (record.courseName === record.courseCode ? record.courseCode : `${record.courseCode}: ${record.courseName}`) :
+        `${record.courseCode}: ${COURSE_NAME_MAP[record.courseCode] || record.courseCode}`,
       semester: `HK${record.semesterNumber}-${record.year}`,
       semesterNumber: record.semesterNumber,
       year: record.year,
@@ -542,7 +610,6 @@ export class ScoreService {
       predictedGPA: record.predictedScores[0]?.predictedScore 
         ? this.convertRawScoreToGPA(record.predictedScores[0].predictedScore) 
         : null,
-      // Add stored GPA values from import
       currentSemesterGpa: record.currentSemesterGpa,
       cumulativeGpa: record.cumulativeGpa,
       previousCoursesTaken: record.previousCoursesTaken,
@@ -640,6 +707,7 @@ export class ScoreService {
         semesterNumber,
         year,
         courseCode,
+        courseName: scoreRecord.courseName || COURSE_NAME_MAP[courseCode] || courseCode,
         creditsUnit,
         mode: 'auto-prediction',
       },
@@ -687,6 +755,7 @@ export class ScoreService {
         semesterNumber,
         year,
         courseCode,
+        courseName: COURSE_NAME_MAP[courseCode] || courseCode,
         studyFormat,
         creditsUnit,
         rawScore: null, // This is the key - no actual score yet
@@ -1299,6 +1368,7 @@ export class ScoreService {
               semesterNumber: record.semesterNumber,
               year: record.year,
               courseCode: record.courseCode,
+              courseName: record.courseName || COURSE_NAME_MAP[record.courseCode] || record.courseCode,
               creditsUnit: record.creditsUnit,
               predictedScore: data.predicted_score,
               convertedNumericScore: this.convertRawScoreToGPA(data.predicted_score),
@@ -1817,9 +1887,13 @@ export class ScoreService {
       // Get predicted score
       const finalPredictedScore = predictedScore?.predictedScore || scoreRecord?.predictedScores?.[0]?.predictedScore || 0;
 
+      // Get course name from database or mapping
+      const baseCourseName = scoreRecord?.courseName || predictedScore?.courseName || COURSE_NAME_MAP[courseCode] || courseCode;
+      const courseName = baseCourseName === courseCode ? courseCode : `${courseCode}: ${baseCourseName}`;
+
       return {
         courseCode,
-        courseName: `${courseCode}: Introduction to Programming`, // You can enhance this with a course name mapping
+        courseName,
         creditUnits,
         predictedScore: finalPredictedScore,
         currentStatus: {
@@ -1832,8 +1906,8 @@ export class ScoreService {
         recommendations: {
           onTrack: finalPredictedScore >= 7.0,
           message: finalPredictedScore >= 7.0 
-            ? "Your current study plan should help you achieve your predicted score. Stay consistent!"
-            : "Consider increasing study time and attendance to improve your predicted score.",
+            ? "Kế hoạch học tập hiện tại của bạn sẽ giúp bạn đạt được điểm dự đoán. Hãy duy trì sự nhất quán!"
+            : "Hãy cân nhắc tăng thời gian học tập và tỷ lệ tham dự để cải thiện điểm dự đoán của bạn.",
           suggestedWeeklyHours: finalPredictedScore < 7.0 
             ? Math.ceil(recommendedWeeklyHours * 1.2) // Increase by 20% if below target
             : recommendedWeeklyHours

@@ -92,12 +92,12 @@ const Learningpath = () => {
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center p-8 bg-white rounded-lg shadow-md">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Lỗi tải dữ liệu</h2>
-          <p className="text-gray-600 mb-6">{error || 'Không thể tải dữ liệu học tập'}</p>
+          <p className="text-gray-600 mb-6">{error || 'Không thể tải dữ liệu lộ trình học tập'}</p>
           <button
             onClick={() => navigate('/prediction-details')}
             className="tailwind-button px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors border-0 cursor-pointer"
           >
-            Quay về trang chi tiết
+            Back to Course List
           </button>
         </div>
       </div>
@@ -112,30 +112,30 @@ const Learningpath = () => {
     if (!learningData) return;
     
     // Create a simple text version of the study plan
-    const studyPlanText = `${learningData.courseName} - Study Plan
+    const studyPlanText = `Kế hoạch học tập - ${learningData.courseName}
     
-Weekly Study Time: ${learningData.currentStatus.weeklyStudyTime} hours
-Attendance Percentage: ${learningData.currentStatus.attendancePercentage}%
-Commute Time: ${learningData.currentStatus.commuteTimeMinutes} minutes
-Total Hours Planned: ${learningData.currentStatus.currentTotalHours} hours
-Recommended Total: ${learningData.currentStatus.recommendedTotalHours} hours
-Predicted Score: ${learningData.predictedScore}
+Thời gian học hàng tuần: ${learningData.currentStatus.weeklyStudyTime} giờ
+Tỷ lệ tham dự: ${learningData.currentStatus.attendancePercentage}%
+Thời gian đi làm: ${learningData.currentStatus.commuteTimeMinutes} phút
+Tổng giờ đã lên kế hoạch: ${learningData.currentStatus.currentTotalHours} giờ
+Tổng giờ được khuyến nghị: ${learningData.currentStatus.recommendedTotalHours} giờ
+Điểm dự đoán: ${learningData.predictedScore}
 
-Study Plan:
+Kế hoạch học tập:
 ${studyPlanItems.map((item, index) => `
 ${index + 1}. ${item.title}
    ${item.description}
-   Status: ${item.completed ? 'Completed' : 'Pending'}
+   Trạng thái: ${item.completed ? 'Hoàn thành' : 'Đang chờ'}
 `).join('')}
 
-Study Tips:
+Mẹo học tập:
 ${studyTips.map(tip => `
 - ${tip.title}: ${tip.description}
 `).join('')}
 
-Recommendations:
+Khuyến nghị:
 ${learningData.recommendations.message}
-Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
+Giờ học hàng tuần được đề xuất: ${learningData.recommendations.suggestedWeeklyHours}h
     `;
 
     const blob = new Blob([studyPlanText], { type: 'text/plain' });
@@ -150,29 +150,29 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
   const studyPlanItems = [
     {
       id: 1,
-      title: "Chapter 1: Variables & Data Types",
-      description: "3 hours • Understand basics",
+      title: "Chương 1: Biến và Kiểu dữ liệu",
+      description: "3 giờ • Hiểu những điều cơ bản",
       completed: true,
       icon: vector,
     },
     {
       id: 2,
-      title: "Chapter 2: Control Structures",
-      description: "4 hours • Apply logic",
+      title: "Chương 2: Cấu trúc điều khiển",
+      description: "4 giờ • Áp dụng logic",
       completed: false,
       icon: image,
     },
     {
       id: 3,
-      title: "Chapter 3: Functions & Arrays",
-      description: "5 hours • Build reusable code",
+      title: "Chương 3: Hàm và Mảng",
+      description: "5 giờ • Xây dựng code có thể tái sử dụng",
       completed: false,
       icon: vector2,
     },
     {
       id: 4,
-      title: "Midterm Review & Practice",
-      description: "6 hours • Consolidate knowledge",
+      title: "Ôn tập và Thực hành Giữa kỳ",
+      description: "6 giờ • Củng cố kiến thức",
       completed: false,
       icon: vector3,
     },
@@ -185,35 +185,35 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
   // Study tips data
   const studyTips = [
     {
-      title: "Time Management",
+      title: "Quản lý thời gian",
       description:
-        "Use 25-minute Pomodoro sessions with 5-minute breaks for focused study",
+        "Sử dụng phiên học 25 phút theo phương pháp Pomodoro với nghỉ 5 phút để tập trung",
       bgColor: "bg-blue-50",
       iconBg: "bg-blue-500",
       textColor: "text-blue-700",
       icon: vector4,
     },
     {
-      title: "Practice Strategy",
+      title: "Chiến lược thực hành",
       description:
-        "Complete coding exercises immediately after learning each topic",
+        "Hoàn thành bài tập lập trình ngay sau khi học xong từng chủ đề",
       bgColor: "bg-green-50",
       iconBg: "bg-emerald-500",
       textColor: "text-emerald-800",
       icon: vector5,
     },
     {
-      title: "AI Assistant",
-      description: "Use AI tools for quick clarifications and debugging help",
+      title: "Trợ lý AI",
+      description: "Sử dụng công cụ AI để làm rõ nhanh và trợ giúp gỡ lỗi",
       bgColor: "bg-amber-100",
       iconBg: "bg-amber-500",
       textColor: "text-amber-800",
       icon: vector6,
     },
     {
-      title: "Study Groups",
+      title: "Nhóm học tập",
       description:
-        "Join collaborative learning sessions for better understanding",
+        "Tham gia các phiên học tập cộng tác để hiểu rõ hơn",
       bgColor: "bg-pink-50",
       iconBg: "bg-pink-500",
       textColor: "text-pink-700",
@@ -223,27 +223,27 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
 
   // Profile recommendations data - dynamic based on user data
   const profileRecommendations = learningData ? [
-    `Based on your ${learningData.userProfile.totalCompletedCourses} completed courses, maintain consistent study patterns`,
-    `Your average performance is ${learningData.userProfile.averagePerformance.toFixed(1)} - ${learningData.recommendations.message}`,
-    `Optimize your ${Math.round(learningData.currentStatus.commuteTimeMinutes)} minute commute time for study review`,
+    `Dựa trên ${learningData.userProfile.totalCompletedCourses} môn đã hoàn thành, hãy duy trì mô hình học tập nhất quán`,
+    `Hiệu suất trung bình của bạn là ${learningData.userProfile.averagePerformance.toFixed(1)} - ${learningData.recommendations.message}`,
+    `Tối ưu hóa thời gian đi lại ${Math.round(learningData.currentStatus.commuteTimeMinutes)} phút để ôn tập bài`,
   ] : [
-    "Focus on key concepts and use active recall techniques",
-    "Review previous chapters weekly to maintain retention", 
-    "Schedule study sessions at consistent times to build a routine",
+    "Tập trung vào các khái niệm chính và sử dụng kỹ thuật ghi nhớ chủ động",
+    "Ôn tập các chương trước hàng tuần để duy trì khả năng ghi nhớ", 
+    "Lên lịch học tập vào thời gian cố định để xây dựng thói quen",
   ];
 
   // Summary data - dynamic based on learning data
   const summaryData = learningData ? [
-    { label: "Weekly Study Time:", value: `${learningData.currentStatus.weeklyStudyTime} hours` },
-    { label: "Attendance Percentage:", value: `${learningData.currentStatus.attendancePercentage}%` },
-    { label: "Commute Time:", value: `${learningData.currentStatus.commuteTimeMinutes} minutes` },
-    { label: "Recommended Total:", value: `${Math.round(learningData.currentStatus.weeklyStudyTime * 2.5)} hours` },
-    { label: "Predicted Score:", value: `${learningData.predictedScore.toFixed(1)}` },
+    { label: "Thời gian học hàng tuần:", value: `${learningData.currentStatus.weeklyStudyTime} giờ` },
+    { label: "Tỷ lệ tham dự:", value: `${learningData.currentStatus.attendancePercentage}%` },
+    { label: "Thời gian đi lại:", value: `${learningData.currentStatus.commuteTimeMinutes} phút` },
+    { label: "Tổng giờ khuyến nghị:", value: `${Math.round(learningData.currentStatus.weeklyStudyTime * 2.5)} giờ` },
+    { label: "Điểm dự đoán:", value: `${learningData.predictedScore.toFixed(1)}` },
   ] : [
-    { label: "Weekly Study Time:", value: "6 hours" },
-    { label: "Total Hours Planned:", value: "36 hours" },
-    { label: "Recommended Total:", value: "15 hours" },
-    { label: "Predicted Score:", value: "7.8" },
+    { label: "Thời gian học hàng tuần:", value: "6 giờ" },
+    { label: "Tổng giờ đã lên kế hoạch:", value: "36 giờ" },
+    { label: "Tổng giờ khuyến nghị:", value: "15 giờ" },
+    { label: "Điểm dự đoán:", value: "7.8" },
   ];
 
   return (
@@ -254,7 +254,7 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
             className="absolute top-[25px] left-4 [font-family:'Inter-Medium',Helvetica] font-medium text-gray-500 text-sm text-center tracking-[0] leading-5 whitespace-nowrap cursor-pointer hover:text-blue-500 transition-colors"
             onClick={handleBackToCourseList}
           >
-            ← Back to Course List
+            ← Quay về danh sách môn học
           </p>
 
           <div className="absolute w-[1225px] h-[394px] top-[72px] left-4 bg-white rounded-lg border border-solid border shadow-[0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_1px_2px_#0000001a,0px_1px_3px_#0000001a]">
@@ -263,7 +263,7 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
             </div>
 
             <div className="top-[63px] left-6 [font-family:'Inter-Regular',Helvetica] font-normal text-gray-500 text-sm leading-5 absolute tracking-[0] whitespace-nowrap">
-              {learningData?.creditUnits || 3} Credit Units
+              {learningData?.creditUnits || 3} Tín chỉ
             </div>
 
             <div className="top-[22px] left-[1167px] [font-family:'Inter-Bold',Helvetica] font-bold text-amber-500 text-2xl text-right leading-8 absolute tracking-[0] whitespace-nowrap">
@@ -271,16 +271,16 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
             </div>
 
             <div className="absolute top-[58px] left-[1108px] [font-family:'Inter-Regular',Helvetica] font-normal text-gray-500 text-xs text-right tracking-[0] leading-4 whitespace-nowrap">
-              Predicted Score
+              Điểm dự đoán
             </div>
 
             <div className="absolute w-[576px] h-[108px] top-[109px] left-[25px] bg-gray-50 rounded-lg">
               <div className="absolute top-[15px] left-4 [font-family:'Inter-SemiBold',Helvetica] font-semibold text-gray-700 text-base tracking-[0] leading-6 whitespace-nowrap">
-                Study Progress
+                Tiến độ học tập
               </div>
 
               <div className="absolute top-[17px] left-[461px] [font-family:'Inter-Regular',Helvetica] font-normal text-gray-500 text-sm tracking-[0] leading-5 whitespace-nowrap">
-                {progressPercentage}% Complete
+                {progressPercentage}% Hoàn thành
               </div>
 
               <div className="absolute w-[544px] h-2 top-[52px] left-4 bg-gray-200 rounded-[26843500px]">
@@ -293,17 +293,17 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
 
             <div className="absolute w-[576px] h-[108px] top-[109px] left-[624px] bg-gray-50 rounded-lg">
               <div className="absolute top-[15px] left-4 [font-family:'Inter-SemiBold',Helvetica] font-semibold text-gray-700 text-base tracking-[0] leading-6 whitespace-nowrap">
-                Study Effort Analysis
+                Phân tích nỗ lực học tập
               </div>
 
               <div className={`absolute w-3 h-3 top-[52px] left-4 ${learningData?.recommendations.onTrack ? 'bg-emerald-500' : 'bg-red-500'} rounded-[26843500px]`} />
 
               <p className="absolute top-[47px] left-9 [font-family:'Inter-Regular',Helvetica] font-normal text-black text-sm tracking-[0] leading-5 whitespace-nowrap">
-                {learningData?.recommendations.onTrack ? 'On track to meet requirements' : 'Need to improve effort'}
+                {learningData?.recommendations.onTrack ? 'Đang đạt yêu cầu' : 'Cần cải thiện nỗ lực'}
               </p>
 
               <p className="absolute top-[74px] left-4 [font-family:'Inter-Regular',Helvetica] font-normal text-gray-500 text-xs tracking-[0] leading-4 whitespace-nowrap">
-                Current: {learningData?.currentStatus.weeklyStudyTime.toFixed(1) || '6'}h weekly | Required: {Math.round((learningData?.currentStatus.weeklyStudyTime || 6) * 2.5)}h weekly
+                Hiện tại: {learningData?.currentStatus.weeklyStudyTime.toFixed(1) || '6'}h/tuần | Yêu cầu: {Math.round((learningData?.currentStatus.weeklyStudyTime || 6) * 2.5)}h/tuần
               </p>
             </div>
 
@@ -313,7 +313,7 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
               </div>
 
               <div className="absolute top-[46px] left-[133px] [font-family:'Inter-Regular',Helvetica] font-normal text-gray-500 text-xs text-center tracking-[0] leading-4 whitespace-nowrap">
-                Weekly Study Time
+                Thời gian học hàng tuần
               </div>
             </div>
 
@@ -323,7 +323,7 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
               </div>
 
               <div className="absolute top-[46px] left-[158px] [font-family:'Inter-Regular',Helvetica] font-normal text-gray-500 text-xs text-center tracking-[0] leading-4 whitespace-nowrap">
-                Estimated Duration
+                Thời lượng ước tính
               </div>
             </div>
 
@@ -333,14 +333,14 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
               </div>
 
               <div className="absolute top-[46px] left-[147px] [font-family:'Inter-Regular',Helvetica] font-normal text-gray-500 text-xs text-center tracking-[0] leading-4 whitespace-nowrap">
-                Total Required
+                Tổng giờ yêu cầu
               </div>
             </div>
           </div>
 
           <div className="absolute w-[1225px] h-[440px] top-[490px] left-4 bg-white rounded-lg border border-solid border shadow-[0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_1px_2px_#0000001a,0px_1px_3px_#0000001a]">
             <div className="absolute top-[22px] left-6 [font-family:'Inter-Bold',Helvetica] font-bold text-gray-900 text-xl tracking-[0] leading-7 whitespace-nowrap">
-              Weekly Study Plan
+              Kế hoạch học tập hàng tuần
             </div>
 
             {studyPlanItems.map((item, index) => (
@@ -382,7 +382,7 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
 
           <div className="absolute w-[1225px] h-[462px] top-[954px] left-4 bg-white rounded-lg border border-solid border shadow-[0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_1px_2px_#0000001a,0px_1px_3px_#0000001a]">
             <div className="absolute top-[22px] left-6 [font-family:'Inter-Bold',Helvetica] font-bold text-gray-900 text-xl tracking-[0] leading-7 whitespace-nowrap">
-              Personalized Study Tips
+              Mẹo học tập cá nhân hóa
             </div>
 
             {studyTips.map((tip, index) => {
@@ -429,7 +429,7 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
 
             <div className="absolute w-[1175px] h-36 top-[292px] left-[25px] bg-gray-50 rounded-lg">
               <div className="absolute top-[15px] left-4 [font-family:'Inter-Medium',Helvetica] font-medium text-gray-700 text-base tracking-[0] leading-6 whitespace-nowrap">
-                Based on Your Profile
+                Dựa trên hồ sơ của bạn
               </div>
 
               {profileRecommendations.map((recommendation, index) => (
@@ -446,11 +446,11 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
 
           <div className="absolute w-[1225px] h-[320px] top-[1439px] left-4 bg-white rounded-lg border border-solid border shadow-[0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_1px_2px_#0000001a,0px_1px_3px_#0000001a]">
             <div className="absolute top-[23px] left-6 [font-family:'Inter-Bold',Helvetica] font-bold text-gray-900 text-xl tracking-[0] leading-7 whitespace-nowrap">
-              Summary & Recommendations
+              Tóm tắt & Khuyến nghị
             </div>
 
             <div className="absolute top-[75px] left-6 [font-family:'Inter-Medium',Helvetica] font-medium text-gray-700 text-base tracking-[0] leading-6 whitespace-nowrap">
-              Current Status
+              Trạng thái hiện tại
             </div>
 
             {summaryData.map((item, index) => (
@@ -474,16 +474,16 @@ Suggested Weekly Hours: ${learningData.recommendations.suggestedWeeklyHours}h
             ))}
 
             <div className="absolute top-[75px] left-[627px] [font-family:'Inter-Medium',Helvetica] font-medium text-gray-700 text-base tracking-[0] leading-6 whitespace-nowrap">
-              Recommendations
+              Khuyến nghị
             </div>
 
             <div className={`absolute w-[572px] h-[102px] top-[117px] left-[628px] ${learningData?.recommendations.onTrack ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} rounded-lg border border-solid`}>
               <div className={`absolute top-[15px] left-4 [font-family:'Inter-Medium',Helvetica] font-medium ${learningData?.recommendations.onTrack ? 'text-green-600' : 'text-red-600'} text-sm tracking-[0] leading-5 whitespace-nowrap`}>
-                {learningData?.recommendations.onTrack ? '✅ On Track' : '⚠️ Need Improvement'}
+                {learningData?.recommendations.onTrack ? '✅ Đúng hướng' : '⚠️ Cần cải thiện'}
               </div>
 
               <p className="absolute w-[497px] top-11 left-4 [font-family:'Inter-Regular',Helvetica] font-normal text-gray-500 text-sm tracking-[0] leading-5">
-                {learningData?.recommendations.message || 'Your current study plan should help you achieve your predicted score. Stay consistent!'}
+                {learningData?.recommendations.message || 'Kế hoạch học tập hiện tại của bạn sẽ giúp bạn đạt được điểm dự đoán. Hãy duy trì sự nhất quán!'}
               </p>
             </div>
           </div>

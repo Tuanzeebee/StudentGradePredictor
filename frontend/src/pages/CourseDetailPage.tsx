@@ -16,7 +16,7 @@ const CourseDetailPage: React.FC = () => {
   };
 
   const handleDownloadStudyPlan = () => {
-    const studyPlanText = `CS101: Introduction to Programming - Study Plan
+    const studyPlanText = `Introduction to Programming - Study Plan
     
 Weekly Study Time: 6 hours
 Total Hours Planned: 36 hours
@@ -40,7 +40,7 @@ Study Tips:
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'CS101-Study-Plan.txt';
+    a.download = 'Introduction-to-Programming-Study-Plan.txt';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -150,7 +150,7 @@ Study Tips:
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-6">
               <div className="mb-4 lg:mb-0">
                 <h1 className="text-3xl font-bold text-slate-800 mb-2">
-                  CS101: Introduction to Programming
+                  Introduction to Programming
                 </h1>
                 <div className="flex items-center text-slate-500">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

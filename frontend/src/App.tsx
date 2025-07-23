@@ -8,6 +8,7 @@ import PredictionDetailsPage from "./pages/PredictionDetailsPage";
 import Learningpath from "./pages/Learningpath";
 import CourseDetailPage from "./pages/CourseDetailPage";
 import Studywithme from "./pages/Studywithme";
+import AdminDashboardNew from "./pages/admin/AdminDashboardNew";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/score-chart" element={<ScoreChartPage />} />
         <Route path="/prediction-details" element={<PredictionDetailsPage />} />
         <Route path="/study-with-me" element={<Studywithme />} />
+        <Route path="/admin" element={<AdminDashboardNew />} />
         <Route path="/" element={<Home />} />
       </Routes>
     </BrowserRouter>

@@ -52,6 +52,7 @@ import PredictionChart from "../components/detailscore/PredictionChart";
 
 interface ScoreData {
   courseCode: string;
+  courseName?: string;
   semester: string;
   actual?: number;
   predicted?: number;

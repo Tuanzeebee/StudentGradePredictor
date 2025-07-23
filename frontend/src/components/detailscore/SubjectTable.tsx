@@ -1,8 +1,8 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 
 interface ScoreData {
   courseCode: string;
+  courseName?: string;
   semester: string;
   actual?: number;
   predicted?: number;
@@ -58,6 +58,9 @@ const SubjectTable: React.FC<SubjectTableProps> = ({ scoreData }) => {
                   Mã môn
                 </th>
                 <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
+                  Tên môn
+                </th>
+                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
                   Học kỳ
                 </th>
                 <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
@@ -79,6 +82,16 @@ const SubjectTable: React.FC<SubjectTableProps> = ({ scoreData }) => {
                 }}>
                   <td style={{ padding: '15px', fontWeight: 'bold', color: '#1f2937' }}>
                     {item.courseCode}
+                  </td>
+                  <td style={{ padding: '15px', color: '#374151' }}>
+                    {(() => {
+                      const courseName = item.courseName || 'Chưa có tên môn';
+                      // Nếu courseName có format "Mã môn: Tên môn", chỉ lấy phần tên môn
+                      if (courseName.includes(':')) {
+                        return courseName.split(':')[1]?.trim() || courseName;
+                      }
+                      return courseName;
+                    })()}
                   </td>
                   <td style={{ padding: '15px', color: '#6b7280' }}>
                     {item.semester}

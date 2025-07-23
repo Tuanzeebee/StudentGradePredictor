@@ -53,13 +53,14 @@ model ScoreRecord {
   studyHoursXPartPartTimeHours Float?
   convertedNumericScore        Float?
   convertedScore               String?
+  courseName                   String?
   predictedScores              PredictedScore[]
   user                         User             @relation(fields: [userId], references: [id])
 
   @@unique([userId, courseCode, semesterNumber, year, studyFormat])
 }
 
-model PredictedScore {
+model   {
   id                    Int          @id @default(autoincrement())
   semesterNumber        Int
   year                  String
@@ -72,5 +73,6 @@ model PredictedScore {
   convertedNumericScore Float?
   convertedScore        String?
   creditsUnit           Int
+  courseName            String?
   scoreRecord           ScoreRecord? @relation(fields: [scoreRecordId], references: [id])
 }
